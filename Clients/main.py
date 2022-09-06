@@ -107,7 +107,7 @@ class GameState:
     def get_action(self) -> Action:
         # write your code here
         # return the action value
-        return random.choice([1,2,4,3])
+        return random.choice([1,2,4,6,7,8])
 
 
 if __name__ == '__main__':
