@@ -3,7 +3,7 @@ from enum import Enum
 import random
 import re
 DEBUG = 1
-f=(0,0)
+
 
 class Action(Enum):
     def __str__(self) -> str:
@@ -108,28 +108,24 @@ class GameState:
     def get_action(self) -> Action:
         # write your code here
         # return the action value
-        global f
-        a=self.map
-        b=a.grid
-        loc=(0,0)
-        if f==(0,0):
-            for i in b:
-                if i.data==3:
-                    loc=i.coordinates
-                    f=loc
-                    break
-        x,y=f
+        target = (3,3)
+
+        for i in self.map.grid:
+            if i.data==MapType.GOLD:
+                target = i.coordinates
+
+
+        x,y=target
         x1,y1=self.location
         if x>x1:
             return Action.MOVE_DOWN
         if x<x1:
             return Action.MOVE_UP
-        if x==x1 and y==y1:
-            return 7
+
         if y>y1:
-            return Action.MOVE_LEFT  
+            return Action.MOVE_RIGHT
         if y<y1:
-            return Action.MOVE_RIGHT  
+            return Action.MOVE_LEFT
 
 
 if __name__ == '__main__':
