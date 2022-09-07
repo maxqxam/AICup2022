@@ -109,29 +109,27 @@ class GameState:
         # write your code here
         # return the action value
         global f
-        a=Map()
+        a=self.map
         b=a.grid
         loc=(0,0)
         if f==(0,0):
             for i in b:
-                if i.type==MapType.GOLD:
+                if i.data==3:
                     loc=i.coordinates
                     f=loc
                     break
         x,y=f
         x1,y1=self.location
         if x>x1:
-            return 1    
+            return Action.MOVE_DOWN
         if x<x1:
-            return 2
+            return Action.MOVE_UP
         if x==x1 and y==y1:
-            return 0
+            return 7
         if y>y1:
-            return 3    
+            return Action.MOVE_LEFT  
         if y<y1:
-            return 4
-        if f==(0,0):
-            return 0
+            return Action.MOVE_RIGHT  
 
 
 if __name__ == '__main__':
