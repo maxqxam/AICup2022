@@ -1,8 +1,9 @@
 from os import makedirs
 from enum import Enum
 import random
-DEBUG = 0
-
+import re
+DEBUG = 1
+f=(0,0)
 
 class Action(Enum):
     def __str__(self) -> str:
@@ -107,7 +108,30 @@ class GameState:
     def get_action(self) -> Action:
         # write your code here
         # return the action value
-        return random.choice([1,2,4,6,7,8])
+        global f
+        a=Map()
+        b=a.grid
+        loc=(0,0)
+        if f==(0,0):
+            for i in b:
+                if i.type==MapType.GOLD:
+                    loc=i.coordinates
+                    f=loc
+                    break
+        x,y=f
+        x1,y1=self.location
+        if x>x1:
+            return 1    
+        if x<x1:
+            return 2
+        if x==x1 and y==y1:
+            return 0
+        if y>y1:
+            return 3    
+        if y<y1:
+            return 4
+        if f==(0,0):
+            return 0
 
 
 if __name__ == '__main__':
