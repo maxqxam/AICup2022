@@ -231,12 +231,7 @@ def find_gold(self):
         if i.type==2:
             self.debug_log += f'self.map.grid {str(i.type)}\n'
             return i.coordinates
-    r=random.randint(0,len(self.map.grid)//3)
-    self.debug_log += f'rrrrrrrrrr {str(r)}\n'
-    self.debug_log += f'len(self.map.grid) {str(len(self.map.grid))}\n'
-    gride=self.map.grid[r]
-    self.debug_log += f'gride.coordinates {str(gride.coordinates)}\n'
-    gride=self.map.grid[1]
+    gride=self.map.grid[2]
     return list((gride.coordinates))
 
 if __name__ == '__main__':
