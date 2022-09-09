@@ -42,6 +42,10 @@ class MapTile:
         self.data: int
         self.coordinates: tuple(int, int)
 
+    def __str__(self) -> str:
+
+        return str(self.type)+" "+str(self.data)+" "+str(self.coordinates)
+
 
 class Map:
     def __init__(self) -> None:

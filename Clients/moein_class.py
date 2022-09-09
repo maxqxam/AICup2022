@@ -41,7 +41,6 @@ def getChoicesPositions(view: GameState) -> list:
             if i.data==MapType.WALL.value or i.data==MapType.OUT_OF_MAP.value:
                 result.append(i.coordinates)
 
-
     return result
 
 
