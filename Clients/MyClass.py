@@ -105,7 +105,7 @@ def getStepTowards(source, destination) -> Action:
 
 def find_gold(self):
     for i in self.map.grid:
-        if i.type == MapType.GOLD.value or i.type == MapType.FOG.value:
+        if i.type == MapType.GOLD.value:
             self.debug_log += f'self.map.grid {str(i.type)}\n'
             return i.coordinates
 
@@ -113,13 +113,23 @@ def find_gold(self):
 
 
 
-
+tail:list = []
+TAIL_MAX_SIZE:int = 10
 def getAction(self:GameState) -> Action:
-    # write your code here
-    # return the action value
+    tail.append(list(self.location))
+    if len(tail)>TAIL_MAX_SIZE:
+        tail.pop(0)
+
+
     start = list(self.location)
-    path = a_star_algorithm(self, self.map.grid, str(start), str(find_gold(self)))
-    # path=a_star_algorithm(self,self.map.grid,str(start),str([7,7]))
+
+    gold_position = find_gold(self)
+
+    if gold_position==list(self.location):
+       0
+    else:
+        path = a_star_algorithm(self, self.map.grid, str(start), str(gold_position))
+
     if len(path) > 1:
         path.pop(0)
 
