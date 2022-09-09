@@ -1,8 +1,14 @@
 from os import makedirs
 from enum import Enum
-import MyClass
+# from MyClass import MyClass
+from MyClass import *
+# import MyClass
+
+import random
+
 
 DEBUG = 1
+
 
 class Action(Enum):
     def __str__(self) -> str:
@@ -96,6 +102,7 @@ class GameState:
         self.debug_log += f'list of wallets: {str(self.wallets)}\n'
         self.debug_log += f'last action: {str(self.last_action)}\n'
         self.debug_log += f'{60 * "-"}\n'
+
     def debug_file(self) -> None:
         fileName = 'Clients/logs/'
         makedirs(fileName, exist_ok=True)
@@ -105,6 +112,8 @@ class GameState:
 
     def get_action(self) -> Action:
         return MyClass.getAction(self)
+
+
 
 if __name__ == '__main__':
     game_state = GameState()
