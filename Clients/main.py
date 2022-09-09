@@ -1,6 +1,7 @@
 from calendar import c
 from distutils.log import debug
 from logging import exception
+import math
 from os import makedirs
 from enum import Enum
 import random
@@ -18,7 +19,7 @@ def a_star_algorithm(self,map_gride,start_node, stop_node):
     while len(open_list) > 0:
         n = None
         for v in open_list:
-            if n == None or g[v] + h(v) < g[n] + h(n):
+            if n == None or g[v] + h(v,stop_node,self) < g[n] + h(n,stop_node,self):
                 n = v
 
         if n == None:
@@ -53,8 +54,16 @@ def a_star_algorithm(self,map_gride,start_node, stop_node):
         open_list.remove(n)
         closed_list.add(n)
     return None
-def h( n):
-    return 1 
+def h( n,stop_node,self):
+    a=convert_strlist_to_int(n)
+    b=convert_strlist_to_int(stop_node)
+    # a=(x-x1)**2 +(y-y1)**2
+    # math.sqrt(a)
+    # self.debug_log += f'nnnnnn {str(math.sqrt(a))}\n'
+    return math.sqrt(math.dist(a,b))
+
+
+
 def convert_strlist_to_int(str):# '[3,4]'--->(3,4)
     a=str.split(',')
     b=a[0]
@@ -194,14 +203,16 @@ class GameState:
         # write your code here
         # return the action value
         start=list(self.location)
-        path=a_star_algorithm(self,self.map.grid,str(start),str([5,5]))
+        path=a_star_algorithm(self,self.map.grid,str(start),str(find_gold(self)))
+        # path=a_star_algorithm(self,self.map.grid,str(start),str([7,7]))
         if len(path)>1:
             path.pop(0)
 
         goal=convert_strlist_to_int(path.pop(0))
         
-        self.debug_log += f'goal {str(goal)}\n'
-        return getStepTowards(start,goal)
+        self.debug_log += f'path {str(path)}\n'
+        return getStepTowards(self.location,goal)
+
 def getStepTowards(source,destination) -> Action:
     if source[0] < destination[0]:
         return Action.MOVE_DOWN
@@ -214,6 +225,20 @@ def getStepTowards(source,destination) -> Action:
         return Action.MOVE_LEFT
 
     return Action.STAY
+ 
+def find_gold(self):
+    for i in self.map.grid:
+        if i.type==2:
+            self.debug_log += f'self.map.grid {str(i.type)}\n'
+            return i.coordinates
+    r=random.randint(0,len(self.map.grid)//3)
+    self.debug_log += f'rrrrrrrrrr {str(r)}\n'
+    self.debug_log += f'len(self.map.grid) {str(len(self.map.grid))}\n'
+    gride=self.map.grid[r]
+    self.debug_log += f'gride.coordinates {str(gride.coordinates)}\n'
+    gride=self.map.grid[1]
+    return list((gride.coordinates))
+
 if __name__ == '__main__':
     game_state = GameState()
     for _ in range(game_state.rounds):
