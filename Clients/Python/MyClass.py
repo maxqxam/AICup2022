@@ -75,34 +75,29 @@ class Step:
 # If the result list is empty it means the algorithm could not find the answer
 # Either way, the second element in the list is your next turn
 def getShortestPath(everyTile: list, src: tuple[int, int], dst: tuple[int, int]) -> list:
-
     validTiles: list = [i.pos for i in everyTile if (i.Type not in blockingTypes and
                                                      i.tempType not in blockingTypes)]
     result: list = []
-    stack: list = [Step(src, src, 0)] # initial layer
+    stack: list = [Step(src, src, 0)]  # initial layer
     stackPos: list = [src]
 
-
-
-
-    if src == dst :
+    if src == dst:
         return [stack[0], stack[0]]
 
-
-    ATL_init = get_connected_nodes_soft(validTiles, src) # first layer
+    ATL_init = get_connected_nodes_soft(validTiles, src)  # first layer
 
     for i in ATL_init:
         stack.append(Step(i, src, 1))
-        if i==dst:
-            return [stack[len(stack)-1],stack[0]]
+        if i == dst:
+            return [stack[len(stack) - 1], stack[0]]
         stackPos.append(i)
 
     end: int = len(stack)
     breaker: bool = False
 
     i = 0
-    while True: # other layers
-        if i>=end: break
+    while True:  # other layers
+        if i >= end: break
         ATL_iter = get_connected_nodes_soft(validTiles, stack[i].cPos)
         for c in ATL_iter:
             if c not in stackPos:
@@ -113,10 +108,10 @@ def getShortestPath(everyTile: list, src: tuple[int, int], dst: tuple[int, int])
                     breaker = True
                     break
 
-        i+=1
+        i += 1
         if breaker: break
 
-    if breaker: # Collecting the path
+    if breaker:  # Collecting the path
         trackPos = dst
         for i in list(range(0, end))[::-1]:
             if stack[i].cPos == trackPos:
@@ -195,9 +190,29 @@ tail: list = []
 TAIL_MAX_SIZE: int = 5
 
 
+def find_closest_type(self: GameState, targetType: MapType):
+    closets_target = None
+    closets_target_dist: float = 0
+    first_iteration: bool = True
+
+    for i in self.map.grid:
+        if i.type == targetType.value:
+            dist = getAverageDistance(self.location, [i.coordinates])
+            if first_iteration or dist < closets_target_dist:
+                closets_target = i.coordinates
+                closets_target_dist = dist
+
+            first_iteration = False
+
+    if closets_target is not None: return tuple(closets_target)
+
+    return None
+
+
 def Update(self: GameState) -> None:
     if Brain.firstIteration:
         brain.initTiles((self.map.height, self.map.width))
+        Brain.firstIteration = False
 
     brain.updateTiles(self.map.grid)
 
@@ -210,7 +225,8 @@ def Update(self: GameState) -> None:
 def Dispose(self: GameState) -> None:
     brain.flushTiles()
 
-def Patrol(self: GameState) -> tuple[int,int]:
+
+def Patrol(self: GameState) -> tuple[int, int]:
     choices = get_connected_nodes_hard(brain.everyTile, (self.location[0], self.location[1]))
 
     if len(choices) != 0:
@@ -220,20 +236,36 @@ def Patrol(self: GameState) -> tuple[int,int]:
 
     return goal
 
-def collectGold(self: GameState) -> None:
-    0
+
+def collectGold(self: GameState, goldPos: tuple[int, int]) -> tuple[int, int] | None:
+    pathList = getShortestPath(brain.everyTile, self.location, goldPos)
+
+    if len(pathList) != 0:
+        return pathList[len(pathList) - 2].cPos
+
+    return self.location
+
 
 def retrieveGold(self: GameState) -> None:
     0
 
-def getAction(self: GameState) -> Action:
 
+h = 9
+w = 11
+
+
+
+
+def getAction(self: GameState) -> Action:
     Update(self)
 
     goal = Patrol(self)
 
+    x = find_closest_type(self,MapType.GOLD)
+    if x is not None:
+        goal = collectGold(self, x)
 
-
+    self.debug_log+=""+brain.getVisiblePlacesString()+"\n"
     Dispose(self)
 
     return getStepTowards(self.location, goal)
