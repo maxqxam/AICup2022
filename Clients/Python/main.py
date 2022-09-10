@@ -22,6 +22,7 @@ class Action(Enum):
     RANGED_ATTACK = 11
 
 
+
 class MapType(Enum):
     def __str__(self) -> str:
         return str(self.value)
@@ -34,6 +35,7 @@ class MapType(Enum):
     FOG = 5
     OUT_OF_SIGHT = 6
     OUT_OF_MAP = 7
+    UNKNOWN = 8
 
 
 class MapTile:
@@ -108,6 +110,7 @@ class GameState:
             f.write(self.debug_log)
 
     def get_action(self) -> Action:
+
         return MyClass.getAction(self)
 
 if __name__ == '__main__':
