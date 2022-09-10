@@ -77,21 +77,15 @@ def convert_strlist_to_int(str):  # '[3,4]'--->(3,4)
 def getFurthestOptionFromTail(options: list, tail: list) -> tuple[int, int]:
     aveDist: float = 0.0
     maxAveDist: float = 0.0
-    possible_options_list:list = []
+    maxAveDistIndex: int = 0
 
     for i in range(0, len(options)):
         aveDist = getAverageDistance(options[i], tail)
         if i == 0 or aveDist > maxAveDist:
             maxAveDist = aveDist
+            maxAveDistIndex = i
 
-    for i in range(0, len(options)):
-        aveDist = getAverageDistance(options[i], tail)
-        if aveDist >= maxAveDist:
-            possible_options_list.append(options[i])
-
-    return random.choice(options)
-
-
+    return options[maxAveDistIndex]
 
 def get_connected_nodes(self,coordinates):
     map_gride=self.map.grid
@@ -181,7 +175,7 @@ def find_closest_gold(self):
 
 
 tail: list = []
-TAIL_MAX_SIZE: int = 5
+TAIL_MAX_SIZE: int = 10
 
 
 def getAction(self: GameState) -> Action:
