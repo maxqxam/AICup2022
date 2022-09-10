@@ -42,9 +42,8 @@ class Brain:
                         self.everyTile[i].tempType = c.type
 
     def flushTiles(self):
-        for i in range(0,len(self.everyTile)):
+        for i in range(0, len(self.everyTile)):
             self.everyTile[i].tempType = MapType.UNKNOWN
-
 
     def getVisiblePlacesString(self) -> str:
         text: str = ""
@@ -63,14 +62,65 @@ class Brain:
 
 
 class Step:
-    def __init__(self, currentTile: Tile, parentTile: Tile, layer: int):
-        self.cTile = currentTile
-        self.pTile = parentTile
+    def __init__(self, currentPos: tuple[int, int], parentPos: tuple[int, int], layer: int):
+        self.cPos = currentPos
+        self.pPos = parentPos
         self.layer = layer
 
+    def __str__(self):
+        return "[ " + str(self.cPos) + " , " + str(self.pPos) + " , " + str(self.layer) + " ]"
 
-def getShortestPath(everyTile: list, srcIndex: int, dstIndex: int) -> list:
+
+# BFS algorithm
+def getShortestPath(everyTile: list, src: tuple[int, int], dst: tuple[int, int]) -> list:
+
+    validTiles: list = [i.pos for i in everyTile if (i.Type not in blockingTypes and
+                                                     i.tempType not in blockingTypes)]
     result: list = []
+    stack: list = [Step(src, src, 0)] # initial layer
+    stackPos: list = [src]
+
+
+
+
+    if src == dst :
+        return [stack[0], stack[0]]
+
+
+    ATL_init = get_connected_nodes_soft(validTiles, src) # first layer
+
+    for i in ATL_init:
+        stack.append(Step(i, src, 1))
+        if i==dst:
+            return [stack[len(stack)-1],stack[0]]
+        stackPos.append(i)
+
+    end: int = len(stack)
+    breaker: bool = False
+
+    i = 0
+    while True: # other layers
+        if i>=end: break
+        ATL_iter = get_connected_nodes_soft(validTiles, stack[i].cPos)
+        for c in ATL_iter:
+            if c not in stackPos:
+                stack.append(Step(c, stack[i].cPos, stack[i].layer + 1))
+                stackPos.append(c)
+                end += 1
+                if c == dst:
+                    breaker = True
+                    break
+
+        i+=1
+        if breaker: break
+
+    if breaker: # Collecting the path
+        trackPos = dst
+        for i in list(range(0, end))[::-1]:
+            if stack[i].cPos == trackPos:
+                result.append(stack[i])
+                trackPos = stack[i].pPos
+
 
     return result
 
@@ -82,7 +132,7 @@ brain: Brain = Brain()
 def getFurthestOptionFromTail(options: list, p_tail: list) -> tuple[int, int]:
     aveDist: float = 0.0
     maxAveDist: float = 0.0
-    maxAveDistIndexList:list = []
+    maxAveDistIndexList: list = []
 
     for i in range(0, len(options)):
         aveDist = getAverageDistance(options[i], p_tail)
@@ -91,13 +141,19 @@ def getFurthestOptionFromTail(options: list, p_tail: list) -> tuple[int, int]:
 
     for i in range(0, len(options)):
         aveDist = getAverageDistance(options[i], p_tail)
-        if aveDist==maxAveDist:
+        if aveDist == maxAveDist:
             maxAveDistIndexList.append(i)
 
     return options[random.choice(maxAveDistIndexList)]
 
 
-def get_connected_nodes(everyTile:list, pos: tuple[int, int]) -> list:
+def get_connected_nodes_soft(validTiles: list, pos: tuple[int, int]) -> list:
+    list_coordinates = [(pos[0], pos[1] + 1), (pos[0], pos[1] - 1), (pos[0] - 1, pos[1]), (pos[0] + 1, pos[1])]
+
+    return [i for i in list_coordinates if i in validTiles]
+
+
+def get_connected_nodes_hard(everyTile: list, pos: tuple[int, int]) -> list:
     list_coordinates = [(pos[0], pos[1] + 1), (pos[0], pos[1] - 1), (pos[0] - 1, pos[1]), (pos[0] + 1, pos[1])]
 
     # return list_coordinates
@@ -135,11 +191,10 @@ def getStepTowards(source, destination) -> Action:
 
 
 tail: list = []
-TAIL_MAX_SIZE: int = 10
+TAIL_MAX_SIZE: int = 5
 
 
 def getAction(self: GameState) -> Action:
-
     if Brain.firstIteration:
         brain.initTiles((self.map.height, self.map.width))
 
@@ -150,16 +205,33 @@ def getAction(self: GameState) -> Action:
     if len(tail) > TAIL_MAX_SIZE:
         tail.pop(0)
 
-    choices = get_connected_nodes(brain.everyTile,(self.location[0], self.location[1]))
-    self.debug_log+="\nLength of choices : "+str(len(choices))+"\n"
+    choices = get_connected_nodes_hard(brain.everyTile, (self.location[0], self.location[1]))
+    self.debug_log += "\nLength of choices : " + str(len(choices)) + "\n"
 
-    if len(choices)!=0:
-        goal = getFurthestOptionFromTail(choices, tail)
-    else:
-        goal = self.location
+    # if len(choices) != 0:
+    #     goal = getFurthestOptionFromTail(choices, tail)
+    # else:
+    #     goal = self.location
 
     self.debug_log += brain.getVisiblePlacesString()
 
     brain.flushTiles()
+
+    pathList = getShortestPath(brain.everyTile, self.location, (self.map.height-1, self.map.width-1))
+
+    if len(pathList) != 0:
+        goal = pathList[len(pathList)-2].cPos
+    else:
+        goal = self.location
+    self.debug_log += "\nPathList Size : " + str(len(pathList)) + "\n"
+
+    stackContent = ""
+    lastLayer = 0
+    for i in pathList:
+        if i.layer != lastLayer: stackContent += "\n"
+        stackContent += str(i) + "\n"
+        lastLayer = i.layer
+
+    self.debug_log+="\n<"+stackContent+">\n"
 
     return getStepTowards(self.location, goal)

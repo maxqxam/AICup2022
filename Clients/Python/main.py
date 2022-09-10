@@ -4,6 +4,7 @@ import MyClass
 
 DEBUG = 1
 
+
 class Action(Enum):
     def __str__(self) -> str:
         return str(self.value)
@@ -20,7 +21,6 @@ class Action(Enum):
     LINEAR_ATTACK_RIGHT = 9
     LINEAR_ATTACK_LEFT = 10
     RANGED_ATTACK = 11
-
 
 
 class MapType(Enum):
@@ -45,8 +45,7 @@ class MapTile:
         self.coordinates: tuple(int, int)
 
     def __str__(self) -> str:
-
-        return str(self.type)+" "+str(self.data)+" "+str(self.coordinates)
+        return str(self.type) + " " + str(self.data) + " " + str(self.coordinates)
 
 
 class Map:
@@ -102,6 +101,7 @@ class GameState:
         self.debug_log += f'list of wallets: {str(self.wallets)}\n'
         self.debug_log += f'last action: {str(self.last_action)}\n'
         self.debug_log += f'{60 * "-"}\n'
+
     def debug_file(self) -> None:
         fileName = 'Clients/logs/'
         makedirs(fileName, exist_ok=True)
@@ -116,10 +116,11 @@ class GameState:
         try:
             result = MyClass.getAction(self)
         except Exception as e:
-            self.debug_log+="MyClass.py Error : "+str(e)+"\n"
-
+            self.debug_log += "MyClass.py Error : " + str(e) + "\n"
 
         return result
+
+
 if __name__ == '__main__':
     game_state = GameState()
     for _ in range(game_state.rounds):
