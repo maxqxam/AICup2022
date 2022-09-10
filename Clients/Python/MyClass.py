@@ -72,6 +72,8 @@ class Step:
 
 
 # BFS algorithm
+# If the result list is empty it means the algorithm could not find the answer
+# Either way, the second element in the list is your next turn
 def getShortestPath(everyTile: list, src: tuple[int, int], dst: tuple[int, int]) -> list:
 
     validTiles: list = [i.pos for i in everyTile if (i.Type not in blockingTypes and
@@ -120,7 +122,6 @@ def getShortestPath(everyTile: list, src: tuple[int, int], dst: tuple[int, int])
             if stack[i].cPos == trackPos:
                 result.append(stack[i])
                 trackPos = stack[i].pPos
-
 
     return result
 
@@ -194,7 +195,7 @@ tail: list = []
 TAIL_MAX_SIZE: int = 5
 
 
-def getAction(self: GameState) -> Action:
+def Update(self: GameState) -> None:
     if Brain.firstIteration:
         brain.initTiles((self.map.height, self.map.width))
 
@@ -205,33 +206,34 @@ def getAction(self: GameState) -> Action:
     if len(tail) > TAIL_MAX_SIZE:
         tail.pop(0)
 
-    choices = get_connected_nodes_hard(brain.everyTile, (self.location[0], self.location[1]))
-    self.debug_log += "\nLength of choices : " + str(len(choices)) + "\n"
 
-    # if len(choices) != 0:
-    #     goal = getFurthestOptionFromTail(choices, tail)
-    # else:
-    #     goal = self.location
-
-    self.debug_log += brain.getVisiblePlacesString()
-
+def Dispose(self: GameState) -> None:
     brain.flushTiles()
 
-    pathList = getShortestPath(brain.everyTile, self.location, (self.map.height-1, self.map.width-1))
+def Patrol(self: GameState) -> tuple[int,int]:
+    choices = get_connected_nodes_hard(brain.everyTile, (self.location[0], self.location[1]))
 
-    if len(pathList) != 0:
-        goal = pathList[len(pathList)-2].cPos
+    if len(choices) != 0:
+        goal = getFurthestOptionFromTail(choices, tail)
     else:
         goal = self.location
-    self.debug_log += "\nPathList Size : " + str(len(pathList)) + "\n"
 
-    stackContent = ""
-    lastLayer = 0
-    for i in pathList:
-        if i.layer != lastLayer: stackContent += "\n"
-        stackContent += str(i) + "\n"
-        lastLayer = i.layer
+    return goal
 
-    self.debug_log+="\n<"+stackContent+">\n"
+def collectGold(self: GameState) -> None:
+    0
+
+def retrieveGold(self: GameState) -> None:
+    0
+
+def getAction(self: GameState) -> Action:
+
+    Update(self)
+
+    goal = Patrol(self)
+
+
+
+    Dispose(self)
 
     return getStepTowards(self.location, goal)
