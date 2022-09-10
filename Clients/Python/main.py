@@ -111,8 +111,15 @@ class GameState:
 
     def get_action(self) -> Action:
 
-        return MyClass.getAction(self)
+        result = Action.STAY
 
+        try:
+            result = MyClass.getAction(self)
+        except Exception as e:
+            self.debug_log+="MyClass.py Error : "+str(e)+"\n"
+
+
+        return result
 if __name__ == '__main__':
     game_state = GameState()
     for _ in range(game_state.rounds):
