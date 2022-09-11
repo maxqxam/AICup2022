@@ -2,12 +2,15 @@ import json
 import os
 import os.path
 import subprocess
+import shutil
+import pathlib
 import sys
 import time
 
 SERVER_PATH:str = "./src/server.py"
 CLIENT_1_PATH:str = "./Clients/main.py"
 CLIENT_2_PATH:str = "./Clients/main.py"
+CLIENT_LOG_PATH:str = "./Clients/logs"
 SERVER_MAX_RUN_COUNT:int = 100
 
 def panic(error_message:str) -> None: # same as throw
@@ -80,7 +83,13 @@ def clean() -> int:
                          ["y","n"])=="n":
         panic("User did not give me the permission to delete a folder")
 
-    return subprocess.call("rm -rf "+LOGS_DIRECTORY_PATH , shell=True)
+    try:
+        shutil.rmtree(pathlib.Path(LOGS_DIRECTORY_PATH).absolute())
+        return 0
+    except OSError:
+        return 1
+
+
 
 def live_analyze_log_file():
     if os.path.exists(ANALYZE_LOG_PATH): os.remove(ANALYZE_LOG_PATH)
@@ -125,8 +134,24 @@ def live_analyze_log_file():
 
 def run_server() -> tuple[int,float]:
     t1:float = time.time()
+
+    try:
+        shutil.rmtree(pathlib.Path(CLIENT_LOG_PATH).absolute())
+    except OSError as e:
+        0
+
+    # This is still error-prone, we don't know how the user runs python scripts
+
     result_code = subprocess.call("python3 "+SERVER_PATH+" -p1 "+CLIENT_1_PATH+" -p2 "+
                            CLIENT_2_PATH , shell=True)
+    if result_code!=0:
+        result_code = subprocess.call("python " + SERVER_PATH + " -p1 " + CLIENT_1_PATH + " -p2 " +
+                                      CLIENT_2_PATH, shell=True)
+    if result_code!=0:
+        result_code = subprocess.call("py " + SERVER_PATH + " -p1 " + CLIENT_1_PATH + " -p2 " +
+                                      CLIENT_2_PATH, shell=True)
+
+
     t2:float = time.time()
     return result_code,t2-t1
 
@@ -141,12 +166,20 @@ def get_latest_log_path() -> tuple[str,str]:
 
     panic("Could not find any new logs!")
 
-def rename_log(log_path:str) -> None:
+def rename_log(log_path:str) -> int:
     global server_run_counter
 
-    command:str = "mv "+LOGS_DIRECTORY_PATH+"/"+log_path+" "+LOGS_DIRECTORY_PATH+"/"+str(server_run_counter)
-    subprocess.call(command,shell=True)
-    server_run_counter+=1
+    from_path = pathlib.Path(LOGS_DIRECTORY_PATH+"/"+log_path).absolute()
+    to_path = pathlib.Path(LOGS_DIRECTORY_PATH+"/"+str(server_run_counter)).absolute()
+
+    try:
+        shutil.move(from_path,to_path)
+        server_run_counter+=1
+        return 0
+    except OSError:
+        return 1
+
+
 
 
 def run_server_loop() -> None:

@@ -1,5 +1,5 @@
 {
-  "rounds": 75,
+  "rounds": 250,
   "def_upgrade_cost": 3,
   "atk_upgrade_cost": 2,
   "cool_down_rate": 0.5,

@@ -27,7 +27,7 @@ class Brain:
         self.everyTileAsPos = []
         for i in range(0, mapDimensions[0]):
             for c in range(0, mapDimensions[1]):
-                Type = MapType.UNKNOWN
+                Type = MapType.UNKNOWN.value
                 self.everyTile.append(Tile((i, c), Type, Type))
                 self.everyTileAsPos.append((i, c))
 
@@ -36,10 +36,10 @@ class Brain:
         for i in range(0, len(self.everyTile)):
             for c in visibleTiles:
                 if tuple(self.everyTile[i].pos) == tuple(c.coordinates):
-                    if c.type in permanentTypes:
-                        self.everyTile[i].Type = c.type
-                    elif c.type in temporaryTypes:
-                        self.everyTile[i].tempType = c.type
+                    if c.type.value in permanentTypes:
+                        self.everyTile[i].Type = c.type.value
+                    elif c.type.value in temporaryTypes:
+                        self.everyTile[i].tempType = c.type.value
 
     def flushTiles(self):
         for i in range(0, len(self.everyTile)):
@@ -196,7 +196,7 @@ def find_closest_type(self: GameState, targetType: MapType):
     first_iteration: bool = True
 
     for i in self.map.grid:
-        if i.type == targetType.value:
+        if i.type.value == targetType.value:
             dist = getAverageDistance(self.location, [i.coordinates])
             if first_iteration or dist < closets_target_dist:
                 closets_target = i.coordinates
@@ -264,6 +264,9 @@ def getAction(self: GameState) -> Action:
     x = find_closest_type(self,MapType.GOLD)
     if x is not None:
         goal = collectGold(self, x)
+
+    self.debug_log+="closest_gold : "+str(x)+"\n"
+
 
     self.debug_log+=""+brain.getVisiblePlacesString()+"\n"
     Dispose(self)
