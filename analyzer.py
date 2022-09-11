@@ -123,6 +123,12 @@ def live_analyze_log_file():
 
         )+dirty_trick[0]+" win count : "+str(team_1_win_count)+"\n"+dirty_trick[1]+" win count : "+(
                                 str(team_2_win_count))+"\n total run time : "+str(round(totalRunTime,3))
+    elif len(dirty_trick)==1:
+        bigString += "\n" + ("total games count : " + str(team_1_win_count + team_2_win_count) + "\n"
+
+                             ) + dirty_trick[0] + " win count : " + str(team_1_win_count) + "\n" + dirty_trick[
+                         0] + "'s opponent win count : " + (
+                         str(team_2_win_count)) + "\n total run time : " + str(round(totalRunTime, 3))
 
 
 

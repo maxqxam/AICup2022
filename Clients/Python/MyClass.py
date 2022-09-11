@@ -38,12 +38,19 @@ class Brain:
                 if tuple(self.everyTile[i].pos) == tuple(c.coordinates):
                     if c.type.value in permanentTypes:
                         self.everyTile[i].Type = c.type.value
+                        if c.type == MapType.TREASURY:
+                            if c.data != -1:
+                                self.everyTile[i].tempType = MapType.AGENT.value
+
                     elif c.type.value in temporaryTypes:
                         self.everyTile[i].tempType = c.type.value
 
+                    # if c.data!=-1:
+                    #     self.everyTile[i].tempType = MapType.AGENT.value
+
     def flushTiles(self):
         for i in range(0, len(self.everyTile)):
-            self.everyTile[i].tempType = MapType.UNKNOWN
+            self.everyTile[i].tempType = MapType.UNKNOWN.value
 
     def getVisiblePlacesString(self) -> str:
         text: str = ""
@@ -190,16 +197,16 @@ tail: list = []
 TAIL_MAX_SIZE: int = 5
 
 
-def find_closest_type(self: GameState, targetType: MapType):
+def find_closest_type(everyTile:list , selfPos:tuple[int,int],targetType: MapType) -> tuple[int,int] | None:
     closets_target = None
     closets_target_dist: float = 0
     first_iteration: bool = True
 
-    for i in self.map.grid:
-        if i.type.value == targetType.value:
-            dist = getAverageDistance(self.location, [i.coordinates])
+    for i in everyTile:
+        if i.Type == targetType.value or i.tempType == targetType.value:
+            dist = getAverageDistance(selfPos, [i.pos])
             if first_iteration or dist < closets_target_dist:
-                closets_target = i.coordinates
+                closets_target = i.pos
                 closets_target_dist = dist
 
             first_iteration = False
@@ -237,8 +244,8 @@ def Patrol(self: GameState) -> tuple[int, int]:
     return goal
 
 
-def collectGold(self: GameState, goldPos: tuple[int, int]) -> tuple[int, int] | None:
-    pathList = getShortestPath(brain.everyTile, self.location, goldPos)
+def goTo(self: GameState, dstPos: tuple[int, int]) -> tuple[int, int]:
+    pathList = getShortestPath(brain.everyTile, self.location, dstPos)
 
     if len(pathList) != 0:
         return pathList[len(pathList) - 2].cPos
@@ -246,13 +253,10 @@ def collectGold(self: GameState, goldPos: tuple[int, int]) -> tuple[int, int] | 
     return self.location
 
 
-def retrieveGold(self: GameState) -> None:
-    0
+def retrieveGold(self: GameState) -> tuple[int,int] | None:
 
 
-h = 9
-w = 11
-
+    return None
 
 
 
@@ -261,9 +265,20 @@ def getAction(self: GameState) -> Action:
 
     goal = Patrol(self)
 
-    x = find_closest_type(self,MapType.GOLD)
-    if x is not None:
-        goal = collectGold(self, x)
+
+
+
+    if self.wallet>14:
+        x = find_closest_type(brain.everyTile,self.location,MapType.TREASURY)
+        if x is not None:
+            goal = goTo(self, x)
+    else:
+        x = find_closest_type(brain.everyTile, self.location, MapType.GOLD)
+        if x is not None:
+            goal = goTo(self, x)
+
+
+
 
     self.debug_log+="closest_gold : "+str(x)+"\n"
 
