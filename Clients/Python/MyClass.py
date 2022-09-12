@@ -82,6 +82,8 @@ class Step:
 # If the result list is empty it means the algorithm could not find the answer
 # Either way, the second element in the list is your next turn
 def getShortestPath(everyTile: list, src: tuple[int, int], dst: tuple[int, int]) -> list:
+    # layer 0
+    # layer 1
     validTiles: list = [i.pos for i in everyTile if (i.Type not in blockingTypes and
                                                      i.tempType not in blockingTypes)]
     result: list = []
@@ -164,7 +166,7 @@ def get_connected_nodes_hard(everyTile: list, pos: tuple[int, int]) -> list:
                                                                        and i.tempType not in blockingTypes)]
 
 
-def getAverageDistance(point: tuple[int, int], pointList: list) -> float:
+def getAverageDistance(point: tuple[int, int], pointList: list) -> float or None:
     distSum: int = 0
     distCounter: int = 0
 
@@ -179,7 +181,7 @@ def getAverageDistance(point: tuple[int, int], pointList: list) -> float:
     return distSum / distCounter
 
 
-def getStepTowards(source, destination) -> Action:
+def getStepTowards(source: tuple[int,int], destination:tuple[int,int]) -> Action:
     if source[0] < destination[0]:
         return Action.MOVE_DOWN
     if source[0] > destination[0]:
@@ -193,11 +195,13 @@ def getStepTowards(source, destination) -> Action:
     return Action.STAY
 
 
+
+
 tail: list = []
 TAIL_MAX_SIZE: int = 5
 
 
-def find_closest_type(everyTile:list , selfPos:tuple[int,int],targetType: MapType) -> tuple[int,int] | None:
+def find_closest_type(everyTile: list, selfPos: tuple[int, int], targetType: MapType) -> tuple[int, int] | None:
     closets_target = None
     closets_target_dist: float = 0
     first_iteration: bool = True
@@ -253,11 +257,37 @@ def goTo(self: GameState, dstPos: tuple[int, int]) -> tuple[int, int]:
     return self.location
 
 
-def retrieveGold(self: GameState) -> tuple[int,int] | None:
+def BadassEquation(self: GameState) -> float:
+    up = self.wallet * self.rounds
+    down = (self.rounds - self.current_round) * 10 + self.map.gold_count
+    return up / down
 
 
-    return None
+def percent(All: float | int, Some: float | int) -> float:
+    if All == 0: return 0
+    return Some * (100 / All)
 
+def HorrificEquation(self: GameState) -> float:
+
+
+    wallet = self.wallet # This is different at every call
+    total_rounds = self.rounds # This is a constant
+    remaining_rounds = self.rounds - self.current_round # this is different at every call
+    map_gold_count = self.map.gold_count # This is a constant
+
+    if wallet > map_gold_count * 2: # This caps the maximum value of wallet
+        wallet = map_gold_count * 2
+
+
+
+    up = total_rounds * wallet
+    down = remaining_rounds * map_gold_count
+
+    Some = up / down
+
+    All = total_rounds * 2 # code to calculate the maximum possible value of (up / down)
+
+    return percent(All, Some)
 
 
 def getAction(self: GameState) -> Action:
@@ -265,11 +295,8 @@ def getAction(self: GameState) -> Action:
 
     goal = Patrol(self)
 
-
-
-
-    if self.wallet>14:
-        x = find_closest_type(brain.everyTile,self.location,MapType.TREASURY)
+    if HorrificEquation(self) > 50:
+        x = find_closest_type(brain.everyTile, self.location, MapType.TREASURY)
         if x is not None:
             goal = goTo(self, x)
     else:
@@ -277,13 +304,9 @@ def getAction(self: GameState) -> Action:
         if x is not None:
             goal = goTo(self, x)
 
+    self.debug_log += "closest_gold : " + str(x) + "\n"
 
-
-
-    self.debug_log+="closest_gold : "+str(x)+"\n"
-
-
-    self.debug_log+=""+brain.getVisiblePlacesString()+"\n"
+    self.debug_log += "" + brain.getVisiblePlacesString() + "\n"
     Dispose(self)
 
     return getStepTowards(self.location, goal)
