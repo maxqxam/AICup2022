@@ -294,7 +294,8 @@ def HorrificEquation(self: GameState) -> float:
     return percent(All, Some)
 
 def go_teasury(self:GameState) -> list or False:
-    brain.find_teasury()
+    if len(brain.locTreasury):
+        brain.find_teasury()
     short_path=[]
     if self.map.height+self.map.width>(self.rounds-self.current_round):
         for i in brain.locTreasury:
