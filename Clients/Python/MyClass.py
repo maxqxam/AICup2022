@@ -1,3 +1,4 @@
+import math
 import random
 from main import GameState
 from main import Action
@@ -215,7 +216,7 @@ def find_closest_type(everyTile: list, selfPos: tuple[int, int], targetType: Map
     first_iteration: bool = True
 
     for i in everyTile:
-        if i.Type == targetType.value or i.tempType == targetType.value i.data==3 or i.data==2:
+        if i.Type == targetType.value or i.tempType == targetType.value :
             dist = getAverageDistance(selfPos, [i.pos],isExtreme=True)
             if first_iteration or dist < closets_target_dist:
                 closets_target = i.pos
@@ -282,16 +283,21 @@ def check_attack(self:GameState):
     agent_loc = find_closest_type(brain.everyTile, self.location, MapType.GOLD)
     if agent_loc !=None:
         x,y=self.location
-        x1,y2=agent_loc
-        if x!=x1 and y!=y2:
-            #RANGED_ATTACK
-        if x>x1:
+        x2,y2=agent_loc
+        distance_Manhattan =abs(x-x2)+abs(y-y2)
+       
+        if x!=x2 and y!=y2:
+            if distance_Manhattan<=self.ranged_attack_radius:
+
+                #RANGED_ATTACK
+        if distance_Manhattan<=self.linear_attack_range:
+            if x>x2:
             #LINEAR_ATTACK_DOWN
-        if x<x1:
+            if x<x2:
             #LINEAR_ATTACK_UP
-        if y<y2:
+            if y<y2:
             #LINEAR_ATTACK_RIGHT
-        if y>y2:
+            if y>y2:
             #LINEAR_ATTACK_LEFT
 
 def getAction(self: GameState) -> Action:
