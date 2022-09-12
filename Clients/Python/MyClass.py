@@ -9,41 +9,72 @@ blockingTypes = [i.value for i in [MapType.WALL, MapType.AGENT, MapType.OUT_OF_M
 
 
 class Tile:
-    def __init__(self, pos: tuple[int, int], Type: MapType, tempType: MapType):
+    def __init__(self, pos: tuple[int, int], Type: MapType, tempType: MapType ,data:int):
         self.pos: tuple[int, int] = pos
         self.Type = Type
         self.tempType = tempType
+        self.data:int = data
+
+class Agent:
+    def __init__(self,pos:tuple[int,int],agentId:int,wallet:int):
+        self.isVisible:bool = False
+        self.pos:tuple[int,int] = pos
+        self.agentId:int = agentId
+        self.wallet:int = wallet
+
+    def __str__(self):
+        return "Agent : <"+str(self.pos)+","+str(self.agentId)+","+str(self.wallet)+","+str(self.isVisible)+">"
 
 
 class Brain:
     firstIteration: bool = True
 
     def __init__(self):
+        self.everyAgent = None
         self.everyTile = None
         self.everyTileAsPos = None
 
-    def initTiles(self, mapDimensions: tuple[int, int]) -> None:
+    def initTiles(self, mapDimensions: tuple[int, int] , view: GameState) -> None:
+        self.everyAgent = {}
+        for i in range(0,4):
+            self.everyAgent[i] = Agent((0,0),i,0)
+
+
         self.everyTile = []
         self.everyTileAsPos = []
         for i in range(0, mapDimensions[0]):
             for c in range(0, mapDimensions[1]):
                 Type = MapType.UNKNOWN.value
-                self.everyTile.append(Tile((i, c), Type, Type))
+                self.everyTile.append(Tile((i, c), Type, Type,0))
                 self.everyTileAsPos.append((i, c))
 
-    def updateTiles(self, visibleTiles: list) -> None:
+    def updateTiles(self, visibleTiles: list , view: GameState) -> None:
+
+        isInTreasury:bool = False
+        for i in self.everyAgent:
+            self.everyAgent[i].isVisible = False
 
         for i in range(0, len(self.everyTile)):
             for c in visibleTiles:
+                isInTreasury = False
                 if tuple(self.everyTile[i].pos) == tuple(c.coordinates):
                     if c.type.value in permanentTypes:
                         self.everyTile[i].Type = c.type.value
                         if c.type == MapType.TREASURY:
                             if c.data != -1:
-                                self.everyTile[i].tempType = MapType.AGENT.value
+                                isInTreasury = True
 
-                    elif c.type.value in temporaryTypes:
+                    if c.type.value in temporaryTypes or isInTreasury:
                         self.everyTile[i].tempType = c.type.value
+                        if c.type.value == MapType.AGENT.value or isInTreasury:
+                            self.everyTile[i].tempType = MapType.AGENT.value
+
+                            self.everyAgent[c.data].pos = c.coordinates
+                            self.everyAgent[c.data].wallet = view.wallets[c.data]
+                            self.everyAgent[c.data].isVisible = True
+
+
+                    self.everyTile[i].data = c.data
 
                     # if c.data!=-1:
                     #     self.everyTile[i].tempType = MapType.AGENT.value
@@ -232,10 +263,10 @@ def find_closest_type(everyTile: list, selfPos: tuple[int, int], targetType: Map
 
 def Update(self: GameState) -> None:
     if Brain.firstIteration:
-        brain.initTiles((self.map.height, self.map.width))
+        brain.initTiles((self.map.height, self.map.width),self)
         Brain.firstIteration = False
 
-    brain.updateTiles(self.map.grid)
+    brain.updateTiles(self.map.grid,self)
 
     tail.append(list(self.location))
 
@@ -287,11 +318,6 @@ def getAction(self: GameState) -> Action:
     goal = Patrol(self)
     
 
-    # if HorrificEquation(self) > 50:
-    #     x = find_closest_type(brain.everyTile, self.location, MapType.TREASURY)
-    #     if x is not None:
-    #         goal = goTo(self, x)
-    # else:
     x = find_closest_type(brain.everyTile, self.location, MapType.GOLD)
     if x is not None :
         goal = goTo(self, x)
@@ -300,6 +326,11 @@ def getAction(self: GameState) -> Action:
         goal = goTo(self,x)
 
     self.debug_log += "closest_gold : " + str(x) + "\n"
+
+    for i in brain.everyAgent:
+        self.debug_log+=str(brain.everyAgent[i])+"\n"
+
+
 
     self.debug_log += "" + brain.getVisiblePlacesString() + "\n"
     Dispose(self)
