@@ -270,7 +270,7 @@ def percent(All: float or int, Some: float or int) -> float:
     if All == 0: return 0
     return Some * (100 / All)
 
-def retrieveTime(self: GameState , triggerRange=5) -> bool or tuple[int,int]:
+def retrieveTime(self: GameState , triggerRange=5) -> bool | tuple[int,int]:
     remaining_steps = (self.rounds - self.current_round)
     closest_treasury = find_closest_type(brain.everyTile,self.location,MapType.TREASURY)
 
@@ -282,15 +282,9 @@ def getAction(self: GameState) -> Action:
     Update(self)
 
     goal = Patrol(self)
-    
 
-    # if HorrificEquation(self) > 50:
-    #     x = find_closest_type(brain.everyTile, self.location, MapType.TREASURY)
-    #     if x is not None:
-    #         goal = goTo(self, x)
-    # else:
     x = find_closest_type(brain.everyTile, self.location, MapType.GOLD)
-    if x is not None :
+    if x is not None:
         goal = goTo(self, x)
     x = retrieveTime(self)
     if x:
