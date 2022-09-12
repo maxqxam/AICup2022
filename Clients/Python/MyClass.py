@@ -272,10 +272,11 @@ def percent(All: float or int, Some: float or int) -> float:
 
 def retrieveTime(self: GameState , triggerRange=5) -> bool or tuple[int,int]:
     remaining_steps = (self.rounds - self.current_round)
-    closest_treasury = find_closest_type(brain.everyTile,self.location,MapType.TREASURY)
+    if self.map.width+self.map.grid>remaining_steps+2:
+        closest_treasury = find_closest_type(brain.everyTile,self.location,MapType.TREASURY)
 
-    if last_closest_target_dist<=remaining_steps<=last_closest_target_dist+triggerRange:
-        return closest_treasury
+        if last_closest_target_dist<=remaining_steps<=last_closest_target_dist+triggerRange:
+            return closest_treasury
     return False
 
 def getAction(self: GameState) -> Action:
