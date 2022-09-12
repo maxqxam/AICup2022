@@ -288,17 +288,16 @@ def check_attack(self:GameState):
        
         if x!=x2 and y!=y2:
             if distance_Manhattan<=self.ranged_attack_radius:
-
-                #RANGED_ATTACK
+                0 #RANGED_ATTACK
         if distance_Manhattan<=self.linear_attack_range:
             if x>x2:
-            #LINEAR_ATTACK_DOWN
+                0 #LINEAR_ATTACK_DOWN
             if x<x2:
-            #LINEAR_ATTACK_UP
+                0 #LINEAR_ATTACK_UP
             if y<y2:
-            #LINEAR_ATTACK_RIGHT
+                0 #LINEAR_ATTACK_RIGHT
             if y>y2:
-            #LINEAR_ATTACK_LEFT
+                0 #LINEAR_ATTACK_LEFT
 
 def getAction(self: GameState) -> Action:
     Update(self)
