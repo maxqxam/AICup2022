@@ -16,14 +16,16 @@ class Tile:
         self.data:int = data
 
 class Agent:
-    def __init__(self,pos:tuple[int,int],agentId:int,wallet:int):
+    def __init__(self,pos:tuple[int,int],agentId:int,wallet:int,team:int):
         self.isVisible:bool = False
         self.pos:tuple[int,int] = pos
         self.agentId:int = agentId
         self.wallet:int = wallet
+        self.team = team
 
     def __str__(self):
-        return "Agent : <"+str(self.pos)+","+str(self.agentId)+","+str(self.wallet)+","+str(self.isVisible)+">"
+        return "Agent : <"+str(self.pos)+","+str(self.agentId)+","+str(self.wallet)+","+str(self.isVisible)+\
+               ","+str(self.team)+">"
 
 
 class Brain:
@@ -37,7 +39,11 @@ class Brain:
     def initTiles(self, mapDimensions: tuple[int, int] , view: GameState) -> None:
         self.everyAgent = {}
         for i in range(0,4):
-            self.everyAgent[i] = Agent((0,0),i,0)
+            team = 1
+            if i>1: team = 2
+
+            self.everyAgent[i] = Agent((0,0),i,0,team)
+
 
 
         self.everyTile = []
@@ -238,14 +244,33 @@ tail: list = []
 TAIL_MAX_SIZE: int = 5
 last_closest_target_dist:float = 0
 
-def find_closest_type(everyTile: list, selfPos: tuple[int, int], targetType: MapType) -> tuple[int, int] or None:
+def find_closest_enemy(view: GameState) -> tuple[int,int] or None:
+    self_team = 1
+    if view.agent_id>1: self_team=2
+
+    closest_enemy = None
+    closest_enemy_dist:float = 0
+    dist:float = 0
+
+    for i in brain.everyAgent:
+        if brain.everyAgent[i].isVisible and brain.everyAgent[i].team!=self_team:
+            dist = len(getShortestPath(brain.everyTile,view.location,brain.everyAgent[i].pos))
+            if closest_enemy is None or dist < closest_enemy_dist:
+                closest_enemy = brain.everyAgent[i].pos
+                closest_enemy_dist = dist
+
+    if closest_enemy is not None: return closest_enemy
+    return None
+
+
+def find_closest_type(selfPos: tuple[int, int], targetType: MapType) -> tuple[int, int] or None:
     global last_closest_target_dist
 
     closets_target = None
     closets_target_dist: float = 0
     first_iteration: bool = True
 
-    for i in everyTile:
+    for i in brain.everyTile:
         if i.Type == targetType.value or i.tempType == targetType.value:
             dist = getAverageDistance(selfPos, [i.pos],isExtreme=True)
             if first_iteration or dist < closets_target_dist:
@@ -306,11 +331,23 @@ def retrieveTime(self: GameState , triggerRange=5) -> bool or tuple[int,int]:
     map_boundaries_size = self.map.width + self.map.height
 
     if remaining_steps<=map_boundaries_size+triggerRange:
-        closest_treasury = find_closest_type(brain.everyTile,self.location,MapType.TREASURY)
+        closest_treasury = find_closest_type(self.location,MapType.TREASURY)
         if remaining_steps<=last_closest_target_dist+triggerRange:
             return closest_treasury
 
     return False
+
+def shouldAttack(self: GameState , attackThreshold:float) -> bool:
+
+    closest_enemy = find_closest_enemy(self)
+    self.debug_log+="closest_enemy!!:"+str(closest_enemy)+"\n" + "attack ratio : "+str(self.attack_ratio)+"\n"
+
+    if closest_enemy is not None and self.attack_ratio > attackThreshold:
+        return True
+
+    return False
+
+
 
 def getAction(self: GameState) -> Action:
     Update(self)
@@ -318,7 +355,7 @@ def getAction(self: GameState) -> Action:
     goal = Patrol(self)
     
 
-    x = find_closest_type(brain.everyTile, self.location, MapType.GOLD)
+    x = find_closest_type(self.location, MapType.GOLD)
     if x is not None :
         goal = goTo(self, x)
     x = retrieveTime(self)
@@ -331,6 +368,9 @@ def getAction(self: GameState) -> Action:
         self.debug_log+=str(brain.everyAgent[i])+"\n"
 
 
+
+    if shouldAttack(self,0.8):
+        return Action.RANGED_ATTACK
 
     self.debug_log += "" + brain.getVisiblePlacesString() + "\n"
     Dispose(self)
