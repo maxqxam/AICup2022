@@ -215,7 +215,7 @@ def find_closest_type(everyTile: list, selfPos: tuple[int, int], targetType: Map
     first_iteration: bool = True
 
     for i in everyTile:
-        if i.Type == targetType.value or i.tempType == targetType.value:
+        if i.Type == targetType.value or i.tempType == targetType.value i.data==3 or i.data==2:
             dist = getAverageDistance(selfPos, [i.pos],isExtreme=True)
             if first_iteration or dist < closets_target_dist:
                 closets_target = i.pos
@@ -272,12 +272,27 @@ def percent(All: float or int, Some: float or int) -> float:
 
 def retrieveTime(self: GameState , triggerRange=5) -> bool or tuple[int,int]:
     remaining_steps = (self.rounds - self.current_round)
-    if self.map.width+self.map.grid>remaining_steps+2:
+    if self.map.width+self.map.height>remaining_steps+2:
         closest_treasury = find_closest_type(brain.everyTile,self.location,MapType.TREASURY)
 
         if last_closest_target_dist<=remaining_steps<=last_closest_target_dist+triggerRange:
             return closest_treasury
     return False
+def check_attack(self:GameState):
+    agent_loc = find_closest_type(brain.everyTile, self.location, MapType.GOLD)
+    if agent_loc !=None:
+        x,y=self.location
+        x1,y2=agent_loc
+        if x!=x1 and y!=y2:
+            #RANGED_ATTACK
+        if x>x1:
+            #LINEAR_ATTACK_DOWN
+        if x<x1:
+            #LINEAR_ATTACK_UP
+        if y<y2:
+            #LINEAR_ATTACK_RIGHT
+        if y>y2:
+            #LINEAR_ATTACK_LEFT
 
 def getAction(self: GameState) -> Action:
     Update(self)
@@ -298,7 +313,7 @@ def getAction(self: GameState) -> Action:
         goal = goTo(self,x)
 
     self.debug_log += "closest_gold : " + str(x) + "\n"
-
+    self.debug_log += f'str(self.wallets): {str(self.wallets)}\n'
     self.debug_log += "" + brain.getVisiblePlacesString() + "\n"
     Dispose(self)
 
