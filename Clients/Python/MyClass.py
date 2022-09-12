@@ -296,13 +296,13 @@ def HorrificEquation(self: GameState) -> float:
 def go_teasury(self:GameState) -> list or False:
     brain.find_teasury()
     short_path=[]
+    if self.map.height+self.map.width>(self.rounds-self.current_round):
+        for i in brain.locTreasury:
+            pathList = getShortestPath(brain.everyTile, self.location, i)
+            if len(pathList)<len(short_path) or len(short_path)==0:
+                short_path=pathList
 
-    for i in brain.locTreasury:
-        pathList = getShortestPath(brain.everyTile, self.location, i)
-        if len(pathList)<len(short_path) or len(short_path)==0:
-            short_path=pathList
-
-    if len(short_path)>(self.rounds-self.current_round)-3:
+    if len(short_path)>(self.rounds-self.current_round):
         return short_path
     else:
         return False
@@ -313,17 +313,15 @@ def getAction(self: GameState) -> Action:
     goal = Patrol(self)
     path_teasury=go_teasury(self)
     if path_teasury!=False:
-        path_teasury=go_teasury(self)
-        self.debug_log += f'path[-1].cPos: {str(path_teasury[len(path_teasury) - 2].cPos)}\n'
         goal=path_teasury[len(path_teasury) - 2].cPos
-        
+
     # if HorrificEquation(self) > 50:
     #     x = find_closest_type(brain.everyTile, self.location, MapType.TREASURY)
     #     if x is not None:
     #         goal = goTo(self, x)
     # else:
     x = find_closest_type(brain.everyTile, self.location, MapType.GOLD)
-    if x is not None and  go_teasury(self)==False :
+    if x is not None and  path_teasury==False :
         goal = goTo(self, x)
 
     self.debug_log += "closest_gold : " + str(x) + "\n"
