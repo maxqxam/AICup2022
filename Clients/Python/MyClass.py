@@ -10,41 +10,77 @@ blockingTypes = [i.value for i in [MapType.WALL, MapType.AGENT, MapType.OUT_OF_M
 
 
 class Tile:
-    def __init__(self, pos: tuple[int, int], Type: MapType, tempType: MapType):
+    def __init__(self, pos: tuple[int, int], Type: MapType, tempType: MapType, data: int):
         self.pos: tuple[int, int] = pos
         self.Type = Type
         self.tempType = tempType
+        self.data: int = data
+
+
+class Agent:
+    def __init__(self, pos: tuple[int, int], agentId: int, wallet: int, team: int):
+        self.isVisible: bool = False
+        self.pos: tuple[int, int] = pos
+        self.agentId: int = agentId
+        self.wallet: int = wallet
+        self.team = team
+
+    def __str__(self):
+        return "Agent : <" + str(self.pos) + "," + str(self.agentId) + "," + str(self.wallet) + "," + str(
+            self.isVisible) + \
+               "," + str(self.team) + ">"
 
 
 class Brain:
     firstIteration: bool = True
 
     def __init__(self):
+        self.everyAgent = None
         self.everyTile = None
         self.everyTileAsPos = None
 
-    def initTiles(self, mapDimensions: tuple[int, int]) -> None:
+    def initTiles(self, mapDimensions: tuple[int, int], view: GameState) -> None:
+        self.everyAgent = {}
+        for i in range(0, 4):
+            team = 1
+            if i > 1: team = 2
+
+            self.everyAgent[i] = Agent((0, 0), i, 0, team)
+
         self.everyTile = []
         self.everyTileAsPos = []
         for i in range(0, mapDimensions[0]):
             for c in range(0, mapDimensions[1]):
                 Type = MapType.UNKNOWN.value
-                self.everyTile.append(Tile((i, c), Type, Type))
+                self.everyTile.append(Tile((i, c), Type, Type, 0))
                 self.everyTileAsPos.append((i, c))
 
-    def updateTiles(self, visibleTiles: list) -> None:
+    def updateTiles(self, visibleTiles: list, view: GameState) -> None:
+
+        isInTreasury: bool = False
+        for i in self.everyAgent:
+            self.everyAgent[i].isVisible = False
 
         for i in range(0, len(self.everyTile)):
             for c in visibleTiles:
+                isInTreasury = False
                 if tuple(self.everyTile[i].pos) == tuple(c.coordinates):
                     if c.type.value in permanentTypes:
                         self.everyTile[i].Type = c.type.value
-                        if c.type == MapType.TREASURY:
+                        if c.type.value == MapType.TREASURY.value:
                             if c.data != -1:
-                                self.everyTile[i].tempType = MapType.AGENT.value
+                                isInTreasury = True
 
-                    elif c.type.value in temporaryTypes:
+                    if c.type.value in temporaryTypes or isInTreasury:
                         self.everyTile[i].tempType = c.type.value
+                        if c.type.value == MapType.AGENT.value or isInTreasury:
+                            self.everyTile[i].tempType = MapType.AGENT.value
+
+                            self.everyAgent[c.data].pos = c.coordinates
+                            self.everyAgent[c.data].wallet = view.wallets[c.data]
+                            self.everyAgent[c.data].isVisible = True
+
+                    self.everyTile[i].data = c.data
 
                     # if c.data!=-1:
                     #     self.everyTile[i].tempType = MapType.AGENT.value
@@ -67,7 +103,6 @@ class Brain:
                 text += str(i.Type)
 
         return text + "\n"
-
 
 
 class Step:
@@ -168,7 +203,7 @@ def get_connected_nodes_hard(everyTile: list, pos: tuple[int, int]) -> list:
                                                                        and i.tempType not in blockingTypes)]
 
 
-def getAverageDistance(point: tuple[int, int], pointList: list,isExtreme:bool=False) -> float or None:
+def getAverageDistance(point: tuple[int, int], pointList: list, isExtreme: bool = False) -> float or None:
     distSum: int = 0
     distCounter: int = 0
 
@@ -177,8 +212,8 @@ def getAverageDistance(point: tuple[int, int], pointList: list,isExtreme:bool=Fa
         p2 = pointList[i]
         dist = abs(point[0] - p2[0]) + abs(point[1] - p2[1])
         if isExtreme:
-            shortest_path = getShortestPath(brain.everyTile,point,p2)
-            if len(shortest_path)!=0:
+            shortest_path = getShortestPath(brain.everyTile, point, p2)
+            if len(shortest_path) != 0:
                 dist = len(shortest_path)
 
         distSum += dist
@@ -188,7 +223,7 @@ def getAverageDistance(point: tuple[int, int], pointList: list,isExtreme:bool=Fa
     return distSum / distCounter
 
 
-def getStepTowards(source: tuple[int,int], destination:tuple[int,int]) -> Action:
+def getStepTowards(source: tuple[int, int], destination: tuple[int, int]) -> Action:
     if source[0] < destination[0]:
         return Action.MOVE_DOWN
     if source[0] > destination[0]:
@@ -202,22 +237,61 @@ def getStepTowards(source: tuple[int,int], destination:tuple[int,int]) -> Action
     return Action.STAY
 
 
-
-
 tail: list = []
 TAIL_MAX_SIZE: int = 5
-last_closest_target_dist:float = 0
+last_closest_target_dist: float = 0
 
-def find_closest_type(everyTile: list, selfPos: tuple[int, int], targetType: MapType) -> tuple[int, int] or None:
+
+def find_closest_enemy(view: GameState) -> tuple[int, int] or None:
+    self_team = 1
+    if view.agent_id > 1: self_team = 2
+
+    closest_enemy = None
+    closest_enemy_dist: float = 0
+    dist: float = 0
+
+    for i in brain.everyAgent:
+        if brain.everyAgent[i].isVisible and brain.everyAgent[i].team != self_team:
+            dist = len(getShortestPath(brain.everyTile, view.location, brain.everyAgent[i].pos))
+            if closest_enemy is None or dist < closest_enemy_dist:
+                closest_enemy = brain.everyAgent[i].pos
+                closest_enemy_dist = dist
+
+    if closest_enemy is not None: return closest_enemy
+    return None
+
+
+def find_fattest_enemy(view: GameState) -> tuple[int, int] or None:
+    # not tested
+    self_team = 1
+    if view.agent_id > 1: self_team = 2
+
+    fattest_enemy = None
+    fattest_enemy_size: float = 0
+    Size: float = 0
+
+    for i in brain.everyAgent:
+        if brain.everyAgent[i].isVisible and brain.everyAgent[i].team != self_team:
+            Size = brain.everyAgent[i].wallet
+            if fattest_enemy is None or Size > fattest_enemy_size:
+                fattest_enemy = brain.everyAgent[i].pos
+                fattest_enemy_size = Size
+
+    if fattest_enemy is not None: return fattest_enemy
+    return None
+
+
+def find_closest_type(selfPos: tuple[int, int], targetType: MapType) -> tuple[int, int] or None:
     global last_closest_target_dist
 
     closets_target = None
     closets_target_dist: float = 0
     first_iteration: bool = True
 
-    for i in everyTile:
-        if i.Type == targetType.value or i.tempType == targetType.value :
-            dist = getAverageDistance(selfPos, [i.pos],isExtreme=True)
+    for i in brain.everyTile:
+        if i.Type == targetType.value or i.tempType == targetType.value:
+
+            dist = getAverageDistance(selfPos, [i.pos], isExtreme=True)
             if first_iteration or dist < closets_target_dist:
                 closets_target = i.pos
                 closets_target_dist = dist
@@ -233,10 +307,10 @@ def find_closest_type(everyTile: list, selfPos: tuple[int, int], targetType: Map
 
 def Update(self: GameState) -> None:
     if Brain.firstIteration:
-        brain.initTiles((self.map.height, self.map.width))
+        brain.initTiles((self.map.height, self.map.width), self)
         Brain.firstIteration = False
 
-    brain.updateTiles(self.map.grid)
+    brain.updateTiles(self.map.grid, self)
 
     tail.append(list(self.location))
 
@@ -267,58 +341,76 @@ def goTo(self: GameState, dstPos: tuple[int, int]) -> tuple[int, int]:
 
     return self.location
 
+
 def percent(All: float or int, Some: float or int) -> float:
     if All == 0: return 0
     return Some * (100 / All)
 
-def retrieveTime(self: GameState , triggerRange=5) -> bool or tuple[int,int]:
-    remaining_steps = (self.rounds - self.current_round)
-    if self.map.width+self.map.height>remaining_steps+2:
-        closest_treasury = find_closest_type(brain.everyTile,self.location,MapType.TREASURY)
 
-        if last_closest_target_dist<=remaining_steps<=last_closest_target_dist+triggerRange:
+def retrieveTime(self: GameState, triggerRange=5) -> bool or tuple[int, int]:
+    remaining_steps = (self.rounds - self.current_round)
+
+    map_boundaries_size = self.map.width + self.map.height
+
+    if remaining_steps <= map_boundaries_size + triggerRange:
+        closest_treasury = find_closest_type(self.location, MapType.TREASURY)
+        if remaining_steps <= last_closest_target_dist + triggerRange:
             return closest_treasury
+
     return False
-def check_attack(self:GameState):
-    agent_loc = find_closest_type(brain.everyTile, self.location, MapType.GOLD)
-    if agent_loc !=None:
-        x,y=self.location
-        x2,y2=agent_loc
-        distance_Manhattan =abs(x-x2)+abs(y-y2)
-       
-        if x!=x2 and y!=y2:
-            if distance_Manhattan<=self.ranged_attack_radius:
-                0 #RANGED_ATTACK
-        if distance_Manhattan<=self.linear_attack_range:
-            if x>x2:
-                0 #LINEAR_ATTACK_DOWN
-            if x<x2:
-                0 #LINEAR_ATTACK_UP
-            if y<y2:
-                0 #LINEAR_ATTACK_RIGHT
-            if y>y2:
-                0 #LINEAR_ATTACK_LEFT
+
+
+def check_attack(self: GameState):
+    agent_loc = find_closest_type(self.location, MapType.GOLD)
+    if agent_loc is not None:
+        x, y = self.location
+        x2, y2 = agent_loc
+        distance_Manhattan = abs(x - x2) + abs(y - y2)
+
+        if x != x2 and y != y2:
+            if distance_Manhattan <= self.ranged_attack_radius:
+                0  # RANGED_ATTACK
+        if distance_Manhattan <= self.linear_attack_range:
+            if x > x2:
+                0  # LINEAR_ATTACK_DOWN
+            if x < x2:
+                0  # LINEAR_ATTACK_UP
+            if y < y2:
+                0  # LINEAR_ATTACK_RIGHT
+            if y > y2:
+                0  # LINEAR_ATTACK_LEFT
+
+
+def shouldAttack(self: GameState, attackThreshold: float) -> bool:
+    closest_enemy = find_fattest_enemy(self)
+    self.debug_log += "closest_enemy!!:" + str(closest_enemy) + "\n" + "attack ratio : " + str(self.attack_ratio) + "\n"
+
+    if closest_enemy is not None and self.attack_ratio > attackThreshold:
+        return True
+
+    return False
+
 
 def getAction(self: GameState) -> Action:
     Update(self)
 
     goal = Patrol(self)
-    
 
-    # if HorrificEquation(self) > 50:
-    #     x = find_closest_type(brain.everyTile, self.location, MapType.TREASURY)
-    #     if x is not None:
-    #         goal = goTo(self, x)
-    # else:
-    x = find_closest_type(brain.everyTile, self.location, MapType.GOLD)
-    if x is not None :
+    x = find_closest_type(self.location, MapType.GOLD)
+    if x is not None:
         goal = goTo(self, x)
     x = retrieveTime(self)
     if x:
-        goal = goTo(self,x)
+        goal = goTo(self, x)
 
     self.debug_log += "closest_gold : " + str(x) + "\n"
-    self.debug_log += f'str(self.wallets): {str(self.wallets)}\n'
+
+    for i in brain.everyAgent:
+        self.debug_log += str(brain.everyAgent[i]) + "\n"
+
+    if shouldAttack(self, 0.8):
+        return Action.RANGED_ATTACK
+
     self.debug_log += "" + brain.getVisiblePlacesString() + "\n"
     Dispose(self)
 
