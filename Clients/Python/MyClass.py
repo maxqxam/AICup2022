@@ -263,6 +263,26 @@ def find_closest_enemy(view: GameState) -> tuple[int,int] or None:
     return None
 
 
+def find_fattest_enemy(view: GameState) -> tuple[int,int] or None:
+    # not tested
+    self_team = 1
+    if view.agent_id>1: self_team=2
+
+    fattest_enemy = None
+    fattest_enemy_size:float = 0
+    Size:float = 0
+
+    for i in brain.everyAgent:
+        if brain.everyAgent[i].isVisible and brain.everyAgent[i].team!=self_team:
+            Size = brain.everyAgent[i].wallet
+            if fattest_enemy is None or Size > fattest_enemy_size:
+                fattest_enemy = brain.everyAgent[i].pos
+                fattest_enemy_size = Size
+
+    if fattest_enemy is not None: return fattest_enemy
+    return None
+
+
 def find_closest_type(selfPos: tuple[int, int], targetType: MapType) -> tuple[int, int] or None:
     global last_closest_target_dist
 
@@ -339,7 +359,7 @@ def retrieveTime(self: GameState , triggerRange=5) -> bool or tuple[int,int]:
 
 def shouldAttack(self: GameState , attackThreshold:float) -> bool:
 
-    closest_enemy = find_closest_enemy(self)
+    closest_enemy = find_fattest_enemy(self)
     self.debug_log+="closest_enemy!!:"+str(closest_enemy)+"\n" + "attack ratio : "+str(self.attack_ratio)+"\n"
 
     if closest_enemy is not None and self.attack_ratio > attackThreshold:
