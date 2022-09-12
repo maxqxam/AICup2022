@@ -242,7 +242,7 @@ TAIL_MAX_SIZE: int = 5
 last_closest_target_dist: float = 0
 
 
-def find_closest_enemy(view: GameState) -> tuple[int, int] or None:
+def find_closest_enemy(view: GameState) -> Agent or None:
     self_team = 1
     if view.agent_id > 1: self_team = 2
 
@@ -254,14 +254,14 @@ def find_closest_enemy(view: GameState) -> tuple[int, int] or None:
         if brain.everyAgent[i].isVisible and brain.everyAgent[i].team != self_team:
             dist = len(getShortestPath(brain.everyTile, view.location, brain.everyAgent[i].pos))
             if closest_enemy is None or dist < closest_enemy_dist:
-                closest_enemy = brain.everyAgent[i].pos
+                closest_enemy = brain.everyAgent[i]
                 closest_enemy_dist = dist
 
     if closest_enemy is not None: return closest_enemy
     return None
 
 
-def find_fattest_enemy(view: GameState) -> tuple[int, int] or None:
+def find_fattest_enemy(view: GameState) -> Agent or None:
     # not tested
     self_team = 1
     if view.agent_id > 1: self_team = 2
@@ -274,7 +274,7 @@ def find_fattest_enemy(view: GameState) -> tuple[int, int] or None:
         if brain.everyAgent[i].isVisible and brain.everyAgent[i].team != self_team:
             Size = brain.everyAgent[i].wallet
             if fattest_enemy is None or Size > fattest_enemy_size:
-                fattest_enemy = brain.everyAgent[i].pos
+                fattest_enemy = brain.everyAgent[i]
                 fattest_enemy_size = Size
 
     if fattest_enemy is not None: return fattest_enemy
@@ -382,7 +382,7 @@ def check_attack(self: GameState):
 
 
 def shouldAttack(self: GameState, attackThreshold: float) -> bool:
-    closest_enemy = find_fattest_enemy(self)
+    closest_enemy = find_closest_enemy(self)
     self.debug_log += "closest_enemy!!:" + str(closest_enemy) + "\n" + "attack ratio : " + str(self.attack_ratio) + "\n"
 
     if closest_enemy is not None and self.attack_ratio > attackThreshold:
