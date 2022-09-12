@@ -60,7 +60,7 @@ class Brain:
                 if tuple(self.everyTile[i].pos) == tuple(c.coordinates):
                     if c.type.value in permanentTypes:
                         self.everyTile[i].Type = c.type.value
-                        if c.type == MapType.TREASURY:
+                        if c.type.value == MapType.TREASURY.value:
                             if c.data != -1:
                                 isInTreasury = True
 
