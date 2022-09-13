@@ -19,7 +19,10 @@ DEBUG_4:
 	python3 $(ANALYZOR) $(SERVER) 100 $(CLIENT_DEBUG) $(CLIENT_4)
 
 DEBUG_5:
-	python3 $(ANALYZOR) $(SERVER) 100 $(CLIENT_DEBUG) $(CLIENT_5)
+	python3 $(ANALYZOR) $(SERVER) 10 $(CLIENT_DEBUG) $(CLIENT_5)
+
+DEBUG_6:
+	python3 $(ANALYZOR) $(SERVER) 10 $(CLIENT_DEBUG) $(CLIENT_5)
 
 
 ANALYZOR=./analyzer.py
@@ -31,6 +34,7 @@ CLIENT_1=./AIBank/1_random_navigation/main.py
 CLIENT_2=./AIBank/2_patrol_plus_approach/main.py
 CLIENT_3=./AIBank/3_better_ppa/main.py
 CLIENT_4=./AIBank/4_retriever_1/main.py
-CLIENT_5=./AIBank/5_baddass_brawler/main.py
+CLIENT_5=./AIBank/5_badass_brawler/main.py
+CLIENT_6=./AIBank/6_better_badass/main.py
 
 

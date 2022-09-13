@@ -348,7 +348,7 @@ def percent(All: float or int, Some: float or int) -> float:
     return Some * (100 / All)
 
 
-def go_treasury(self: GameState, triggerRange=5) -> bool or tuple[int, int]:
+def go_trasury(self: GameState, triggerRange=5) -> bool or tuple[int, int]:
     remaining_steps = (self.rounds - self.current_round)
 
     map_boundaries_size = self.map.width + self.map.height
@@ -417,17 +417,16 @@ def getAction(self: GameState) -> Action:
     go_g = find_closest_type(self.location, MapType.GOLD)
     if go_g is not None:
         goal = goTo(self, go_g)
-
-    go_t = go_treasury(self)
+    go_t = go_trasury(self)
     if go_t:
         goal = goTo(self, go_t)
 
     for i in brain.everyAgent:
         self.debug_log += str(brain.everyAgent[i]) + "\n"
 
-    # attack = check_attack(self)
-    # if attack and not go_t:
-    #     return attack
+    attack = check_attack(self)
+    if attack and not go_t:
+        return attack
 
     self.debug_log += "" + brain.getVisiblePlacesString() + "\n"
     Dispose(self)
