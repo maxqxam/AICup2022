@@ -1,5 +1,3 @@
-from ast import Return
-import math
 import random
 from main import GameState
 from main import Action
@@ -17,7 +15,6 @@ class Tile:
         self.tempType = tempType
         self.data: int = data
 
-
 class Agent:
     def __init__(self, pos: tuple[int, int], agentId: int, wallet: int, team: int):
         self.isVisible: bool = False
@@ -31,10 +28,8 @@ class Agent:
             self.isVisible) + \
                "," + str(self.team) + ">"
 
-
 class Brain:
     firstIteration: bool = True
-
     def __init__(self):
         self.everyAgent = None
         self.everyTile = None
@@ -318,41 +313,41 @@ def find_closest_type(selfPos: tuple[int, int], targetType: MapType) -> tuple[in
     return None
 
 
-def Update(self: GameState) -> None:
+def Update(view: GameState) -> None:
     if Brain.firstIteration:
-        brain.initTiles((self.map.height, self.map.width), self)
+        brain.initTiles((view.map.height, view.map.width), view)
         Brain.firstIteration = False
 
-    brain.updateTiles(self.map.grid, self)
+    brain.updateTiles(view.map.grid, view)
 
-    tail.append(list(self.location))
+    tail.append(list(view.location))
 
     if len(tail) > TAIL_MAX_SIZE:
         tail.pop(0)
 
 
-def Dispose(self: GameState) -> None:
+def Dispose(view: GameState) -> None:
     brain.flushTiles()
 
 
-def Patrol(self: GameState) -> tuple[int, int]:
-    choices = get_connected_nodes_hard(brain.everyTile, (self.location[0], self.location[1]))
+def Patrol(view: GameState) -> tuple[int, int]:
+    choices = get_connected_nodes_hard(brain.everyTile, (view.location[0], view.location[1]))
 
     if len(choices) != 0:
         goal = getFurthestOptionFromTail(choices, tail)
     else:
-        goal = self.location
+        goal = view.location
 
     return goal
 
 
-def goTo(self: GameState, dstPos: tuple[int, int]) -> tuple[int, int]:
-    pathList = getShortestPath(brain.everyTile, self.location, dstPos)
+def goTo(view: GameState, dstPos: tuple[int, int]) -> tuple[int, int]:
+    pathList = getShortestPath(brain.everyTile, view.location, dstPos)
 
     if len(pathList) != 0:
         return pathList[len(pathList) - 2].cPos
 
-    return self.location
+    return view.location
 
 
 def percent(All: float or int, Some: float or int) -> float:
@@ -360,99 +355,99 @@ def percent(All: float or int, Some: float or int) -> float:
     return Some * (100 / All)
 
 
-def retrieveGold(self: GameState, triggerRange=5) -> bool or tuple[int, int]:
-    if self.wallet == 0: return False
+def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
+    if view.wallet == 0: return False
 
-    remaining_steps = (self.rounds - self.current_round)
+    remaining_steps = (view.rounds - view.current_round)
 
-    map_boundaries_size = self.map.width + self.map.height
+    map_boundaries_size = view.map.width + view.map.height
 
     if remaining_steps <= map_boundaries_size + triggerRange:
-        closest_treasury = find_closest_type(self.location, MapType.TREASURY)
+        closest_treasury = find_closest_type(view.location, MapType.TREASURY)
         if remaining_steps <= last_closest_target_dist + triggerRange:
             return closest_treasury
 
     else:
         # if attacked by the opponent, how many coins will be lost?
-        lost_coins = self.wallet * self.attack_ratio * (self.atklvl / (self.atklvl + self.deflvl) + 1)
+        lost_coins = view.wallet * view.attack_ratio * (view.atklvl / (view.atklvl + view.deflvl) + 1)
 
-        if lost_coins > self.map.gold_count:
-            closest_treasury = find_closest_type(self.location, MapType.TREASURY)
+        if lost_coins > view.map.gold_count:
+            closest_treasury = find_closest_type(view.location, MapType.TREASURY)
             return closest_treasury
 
     return False
 
 
-def shouldAttack(self: GameState, minimumAttackRatio: float = 0.8) -> False or Action:
+def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or Action:
 
-    target = find_fattest_enemy(self)
+    target = find_fattest_enemy(view)
 
 
     if target is not None:
 
-        if self.attack_ratio <= minimumAttackRatio or target.wallet == 0:
+        if view.attack_ratio <= minimumAttackRatio or target.wallet == 0:
             return False
 
-        dist = abs(self.location[0] - target.pos[0]) + abs(self.location[1] - target.pos[1])
+        dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
 
-        if dist <= self.ranged_attack_radius:
+        if dist <= view.ranged_attack_radius:
             return Action.RANGED_ATTACK
 
-        if dist <= self.linear_attack_range and (self.location[0] == target.pos[0] or
-                                                 self.location[1] == target.pos[1]):
-            if self.location[0] > target.pos[0]:
+        if dist <= view.linear_attack_range and (view.location[0] == target.pos[0] or
+                                                 view.location[1] == target.pos[1]):
+            if view.location[0] > target.pos[0]:
                 return Action.LINEAR_ATTACK_UP
 
-            if self.location[0] < target.pos[0]:
+            if view.location[0] < target.pos[0]:
                 return Action.LINEAR_ATTACK_DOWN
 
-            if self.location[1] < target.pos[1]:
+            if view.location[1] < target.pos[1]:
                 return Action.LINEAR_ATTACK_RIGHT
 
-            if self.location[1] > target.pos[1]:
+            if view.location[1] > target.pos[1]:
                 return Action.LINEAR_ATTACK_LEFT
 
     return False
 
 
-def shouldUpgradeDefence(self: GameState, activationThreshold: float) -> bool:
-    if percent(self.rounds, self.current_round) < activationThreshold \
-            and self.wallet >= self.def_upgrade_cost:
+def shouldUpgradeDefence(view: GameState, activationThreshold: float) -> bool:
+    if percent(view.rounds, view.current_round) < activationThreshold \
+            and view.wallet >= view.def_upgrade_cost:
         return True
     return False
 
 
-def shouldUpgradeAttack(self: GameState, activationThreshold: float) -> bool:
-    if percent(self.rounds, self.current_round) < activationThreshold \
-            and self.wallet >= self.atk_upgrade_cost:
+def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
+    if percent(view.rounds, view.current_round) < activationThreshold \
+            and view.wallet >= view.atk_upgrade_cost:
         return True
     return False
 
 
-def getAction(self: GameState) -> Action:
-    Update(self)
+def getAction(view: GameState) -> Action:
+    Update(view)
 
-    goal = Patrol(self)
+    goal = Patrol(view)
 
-    if shouldUpgradeDefence(self, 20):
+    if shouldUpgradeDefence(view, 20):
         return Action.UPGRADE_DEFENCE
 
-    go_g = find_closest_type(self.location, MapType.GOLD)
+    go_g = find_closest_type(view.location, MapType.GOLD)
     if go_g is not None:
-        goal = goTo(self, go_g)
-    go_t = retrieveGold(self)
+        goal = goTo(view, go_g)
+    go_t = retrieveGold(view)
     if go_t:
-        self.debug_log += "\nretrieveGold : " + str(go_t) + " | " + str(self.location) + "\n"
-        goal = goTo(self, go_t)
+        view.debug_log += "\nretrieveGold : " + str(go_t) + " | " + str(view.location) + "\n"
+        goal = goTo(view, go_t)
 
     for i in brain.everyAgent:
-        self.debug_log += str(brain.everyAgent[i]) + "\n"
+        view.debug_log += str(brain.everyAgent[i]) + "\n"
 
-    attack = shouldAttack(self)
+    attack = shouldAttack(view)
     if attack and not go_t:
         return attack
 
-    self.debug_log += "" + brain.getVisiblePlacesString() + "\n"
-    Dispose(self)
+    view.debug_log += "" + brain.getVisiblePlacesString() + "\n"
+    Dispose(view)
 
-    return getStepTowards(self.location, goal)
+    return getStepTowards(view.location, goal)
