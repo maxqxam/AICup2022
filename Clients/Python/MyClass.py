@@ -101,7 +101,7 @@ class Brain:
             text += str(i.Type)
 
         last_row = 0
-        text+="\ntempType included:\n"
+        text += "\ntempType included:\n"
         for i in self.everyTile:
             if i.pos[0] != last_row: text += "\n"
             last_row = i.pos[0]
@@ -297,7 +297,12 @@ def find_closest_type(selfPos: tuple[int, int], targetType: MapType) -> tuple[in
     first_iteration: bool = True
 
     for i in brain.everyTile:
-        if (i.Type == targetType.value and i.tempType not in blockingTypes) or i.tempType == targetType.value:
+        if i.Type == targetType.value and i.pos == selfPos:
+            closets_target = i.pos
+            break
+
+        if (i.Type == targetType.value and (i.tempType not in blockingTypes or i.pos == selfPos)) \
+                or i.tempType == targetType.value:
 
             dist = getAverageDistance(selfPos, [i.pos], isExtreme=True)
             if first_iteration or dist < closets_target_dist:
@@ -356,6 +361,8 @@ def percent(All: float or int, Some: float or int) -> float:
 
 
 def retrieveGold(self: GameState, triggerRange=5) -> bool or tuple[int, int]:
+    if self.wallet == 0: return False
+
     remaining_steps = (self.rounds - self.current_round)
 
     map_boundaries_size = self.map.width + self.map.height
@@ -366,7 +373,7 @@ def retrieveGold(self: GameState, triggerRange=5) -> bool or tuple[int, int]:
             return closest_treasury
 
     else:
-        # is attacked by the opponent, how many coins will he lose?
+        # if attacked by the opponent, how many coins will be lost?
         lost_coins = self.wallet * self.attack_ratio * (self.atklvl / (self.atklvl + self.deflvl) + 1)
 
         if lost_coins > self.map.gold_count:
@@ -376,43 +383,49 @@ def retrieveGold(self: GameState, triggerRange=5) -> bool or tuple[int, int]:
     return False
 
 
-def check_attack(self: GameState) -> False or Action:
-    agent = find_fattest_enemy(self)
-    if agent is not None:
-        x, y = self.location
-        x2, y2 = agent.pos
-        distance_Manhattan = abs(x - x2) + abs(y - y2)
-        attack_efficiency = agent.wallet * self.attack_ratio * (self.atklvl / (self.atklvl + 1))
-        self.debug_log += f'attack_efficiency=attack_efficiency=: {str(attack_efficiency)}\n'
+def shouldAttack(self: GameState, minimumAttackRatio: float = 0.8) -> False or Action:
 
-        if attack_efficiency >= self.map.gold_count / 5:
+    target = find_fattest_enemy(self)
 
-            if x != x2 and y != y2 or distance_Manhattan <= self.ranged_attack_radius:
-                # if distance_Manhattan <= self.ranged_attack_radius:
-                return Action.RANGED_ATTACK
 
-            if distance_Manhattan <= self.linear_attack_range:
-                if x > x2:
-                    return Action.LINEAR_ATTACK_UP
+    if target is not None:
 
-                if x < x2:
-                    return Action.LINEAR_ATTACK_DOWN
+        if self.attack_ratio <= minimumAttackRatio or target.wallet == 0:
+            return False
 
-                if y < y2:
-                    return Action.MOVE_RIGHT
+        dist = abs(self.location[0] - target.pos[0]) + abs(self.location[1] - target.pos[1])
 
-                if y > y2:
-                    return Action.LINEAR_ATTACK_LEFT
+        if dist <= self.ranged_attack_radius:
+            return Action.RANGED_ATTACK
+
+        if dist <= self.linear_attack_range and (self.location[0] == target.pos[0] or
+                                                 self.location[1] == target.pos[1]):
+            if self.location[0] > target.pos[0]:
+                return Action.LINEAR_ATTACK_UP
+
+            if self.location[0] < target.pos[0]:
+                return Action.LINEAR_ATTACK_DOWN
+
+            if self.location[1] < target.pos[1]:
+                return Action.LINEAR_ATTACK_RIGHT
+
+            if self.location[1] > target.pos[1]:
+                return Action.LINEAR_ATTACK_LEFT
+
     return False
 
 
-def shouldAttack(self: GameState, attackThreshold: float) -> bool:
-    closest_enemy = find_closest_enemy(self)
-    self.debug_log += "closest_enemy!!:" + str(closest_enemy) + "\n" + "attack ratio : " + str(self.attack_ratio) + "\n"
-
-    if closest_enemy is not None and self.attack_ratio > attackThreshold:
+def shouldUpgradeDefence(self: GameState, activationThreshold: float) -> bool:
+    if percent(self.rounds, self.current_round) < activationThreshold \
+            and self.wallet >= self.def_upgrade_cost:
         return True
+    return False
 
+
+def shouldUpgradeAttack(self: GameState, activationThreshold: float) -> bool:
+    if percent(self.rounds, self.current_round) < activationThreshold \
+            and self.wallet >= self.atk_upgrade_cost:
+        return True
     return False
 
 
@@ -421,18 +434,21 @@ def getAction(self: GameState) -> Action:
 
     goal = Patrol(self)
 
+    if shouldUpgradeDefence(self, 20):
+        return Action.UPGRADE_DEFENCE
+
     go_g = find_closest_type(self.location, MapType.GOLD)
     if go_g is not None:
         goal = goTo(self, go_g)
     go_t = retrieveGold(self)
     if go_t:
-        self.debug_log+="\nretrieveGold : "+str(go_t)+" | "+str(self.location)+"\n"
+        self.debug_log += "\nretrieveGold : " + str(go_t) + " | " + str(self.location) + "\n"
         goal = goTo(self, go_t)
 
     for i in brain.everyAgent:
         self.debug_log += str(brain.everyAgent[i]) + "\n"
 
-    attack = check_attack(self)
+    attack = shouldAttack(self)
     if attack and not go_t:
         return attack
 

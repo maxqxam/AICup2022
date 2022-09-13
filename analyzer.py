@@ -164,13 +164,17 @@ def run_server() -> tuple[int,float]:
         os.mkdir(pathlib.Path(newPath).absolute())
         target0 = pathlib.Path(CLIENT_LOG_PATH+"/AGENT0.log").absolute()
         target1 = pathlib.Path(CLIENT_LOG_PATH+"/AGENT1.log").absolute()
+        target2 = pathlib.Path(CLIENT_LOG_PATH + "/AGENT2.log").absolute()
+        target3 = pathlib.Path(CLIENT_LOG_PATH + "/AGENT3.log").absolute()
+
 
         dst0 = pathlib.Path(newPath + "/AGENT0.log").absolute()
         dst1 = pathlib.Path(newPath + "/AGENT1.log").absolute()
 
-        shutil.copy(target0,dst0)
-        shutil.copy(target1,dst1)
-        
+        shutil.move(target0,dst0)
+        shutil.move(target1,dst1)
+        os.remove(target2)
+        os.remove(target3)
 
     except OSError as e:
         0
