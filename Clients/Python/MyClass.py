@@ -1,3 +1,4 @@
+from ast import Return
 import math
 import random
 from main import GameState
@@ -360,25 +361,31 @@ def retrieveTime(self: GameState, triggerRange=5) -> bool or tuple[int, int]:
     return False
 
 
-def check_attack(self: GameState):
-    agent_loc = find_closest_type(self.location, MapType.GOLD)
-    if agent_loc is not None:
+def check_attack(self: GameState)->False or Action:
+    agent= find_fattest_enemy(self)
+    if agent is not None:
         x, y = self.location
-        x2, y2 = agent_loc
+        x2, y2 = agent.pos
         distance_Manhattan = abs(x - x2) + abs(y - y2)
+        attack_efficiency=agent.wallet*self.attack_ratio*(self.atklvl/(self.atklvl+1))
+        self.debug_log += f'attack_efficiency=attack_efficiency=: {str(attack_efficiency)}\n'
+        if attack_efficiency>=self.map.gold_count/5:
+            if x != x2 and y != y2 or distance_Manhattan <= self.ranged_attack_radius:
+                # if distance_Manhattan <= self.ranged_attack_radius:
+                return Action.RANGED_ATTACK 
+            if distance_Manhattan <= self.linear_attack_range:
+                if x > x2:
+                     return Action.LINEAR_ATTACK_UP 
 
-        if x != x2 and y != y2:
-            if distance_Manhattan <= self.ranged_attack_radius:
-                0  # RANGED_ATTACK
-        if distance_Manhattan <= self.linear_attack_range:
-            if x > x2:
-                0  # LINEAR_ATTACK_DOWN
-            if x < x2:
-                0  # LINEAR_ATTACK_UP
-            if y < y2:
-                0  # LINEAR_ATTACK_RIGHT
-            if y > y2:
-                0  # LINEAR_ATTACK_LEFT
+                if x < x2:
+                    return Action.LINEAR_ATTACK_DOWN
+                   
+                if y < y2:
+                    return Action.MOVE_RIGHT 
+
+                if y > y2:
+                    return Action.LINEAR_ATTACK_LEFT  
+    return False
 
 
 def shouldAttack(self: GameState, attackThreshold: float) -> bool:
@@ -407,9 +414,9 @@ def getAction(self: GameState) -> Action:
 
     for i in brain.everyAgent:
         self.debug_log += str(brain.everyAgent[i]) + "\n"
-
-    if shouldAttack(self, 0.8):
-        return Action.RANGED_ATTACK
+    atack=check_attack(self)
+    if atack:
+        return atack
 
     self.debug_log += "" + brain.getVisiblePlacesString() + "\n"
     Dispose(self)
