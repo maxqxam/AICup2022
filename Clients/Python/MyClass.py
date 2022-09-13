@@ -348,7 +348,7 @@ def percent(All: float or int, Some: float or int) -> float:
     return Some * (100 / All)
 
 
-def retrieveTime(self: GameState, triggerRange=5) -> bool or tuple[int, int]:
+def go_trasury(self: GameState, triggerRange=5) -> bool or tuple[int, int]:
     remaining_steps = (self.rounds - self.current_round)
 
     map_boundaries_size = self.map.width + self.map.height
@@ -356,6 +356,14 @@ def retrieveTime(self: GameState, triggerRange=5) -> bool or tuple[int, int]:
     if remaining_steps <= map_boundaries_size + triggerRange:
         closest_treasury = find_closest_type(self.location, MapType.TREASURY)
         if remaining_steps <= last_closest_target_dist + triggerRange:
+            return closest_treasury
+
+    else:
+        # is attacked by the opponent, how many coins will he lose?
+        lost_coins=self.wallet*self.attack_ratio*(self.atklvl/(self.atklvl+self.deflvl)+1)
+
+        if lost_coins>self.map.gold_count:
+            closest_treasury = find_closest_type(self.location, MapType.TREASURY)
             return closest_treasury
 
     return False
@@ -406,7 +414,7 @@ def getAction(self: GameState) -> Action:
     x = find_closest_type(self.location, MapType.GOLD)
     if x is not None:
         goal = goTo(self, x)
-    x = retrieveTime(self)
+    x = go_trasury(self)
     if x:
         goal = goTo(self, x)
 
