@@ -237,7 +237,7 @@ def Patrol(self: GameState) -> tuple[int, int]:
     return goal
 
 
-def collectGold(self: GameState, goldPos: tuple[int, int]) -> tuple[int, int] | None:
+def collectGold(self: GameState, goldPos: tuple[int, int]) -> tuple[int, int] or None:
     pathList = getShortestPath(brain.everyTile, self.location, goldPos)
 
     if len(pathList) != 0:
