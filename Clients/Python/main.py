@@ -1,6 +1,14 @@
 from os import makedirs
 from enum import Enum
-import MyClass
+
+
+Error = ""
+
+try:
+    import MyClass
+except Exception as e:
+    Error += " MyClass import Error : "+str(e)+"\n"
+
 
 DEBUG = 1
 
@@ -63,6 +71,7 @@ class Map:
         self.grid: list
 
     def __str__(self) -> str:
+
         res = f'sight range -> {self.sight_range}\n'
         for i in range(self.sight_range):
             res += '\t'
@@ -109,7 +118,7 @@ class GameState:
         # Customize to your needs
         self.debug_log += f'round: {str(self.current_round)}\n'
         self.debug_log += f'location: {str(self.location)}\n'
-        self.debug_log += f'Map: {str(self.map)}\n'
+        # self.debug_log += f'Map: {str(self.map)}\n'
         self.debug_log += f'attack ratio: {str(self.attack_ratio)}\n'
         self.debug_log += f'defence level: {str(self.deflvl)}\n'
         self.debug_log += f'attack level: {str(self.atklvl)}\n'
@@ -132,6 +141,7 @@ class GameState:
         try:
             result = MyClass.getAction(self)
         except Exception as e:
+            self.debug_log += Error
             self.debug_log += "MyClass.py Error : " + str(e) + "\n"
 
         return result
