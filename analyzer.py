@@ -10,7 +10,7 @@ import time
 SERVER_PATH:str = "./src/server.py"
 CLIENT_1_PATH:str = "./Clients/main.py"
 CLIENT_2_PATH:str = "./Clients/main.py"
-CLIENT_LOG_PATH:str = "./Clients/logs"
+CLIENT_LOG_PATH:str = "./Clients/Python/Clients/logs"
 SERVER_MAX_RUN_COUNT:int = 100
 
 def panic(error_message:str) -> None: # same as throw

@@ -15,6 +15,7 @@ class Tile:
         self.tempType = tempType
         self.data: int = data
 
+
 class Agent:
     def __init__(self, pos: tuple[int, int], agentId: int, wallet: int, team: int):
         self.isVisible: bool = False
@@ -23,13 +24,26 @@ class Agent:
         self.wallet: int = wallet
         self.team = team
 
+        self.attacklvl: int = 1
+        self.deflvl: int = 1
+        self.wallet_Round_before: int = 1
+        self.attacked_round: int = -1  # the round that was attacked:
+        self.attacker_ID: int = -1
+        self.attacker_attack_ratio: int = 1
+        self.update_deflvl_rund: int = 1
+        self.wallet_last_attack: int = 0
+
     def __str__(self):
-        return "Agent : <" + str(self.pos) + "," + str(self.agentId) + "," + str(self.wallet) + "," + str(
+        return "Agent : < pos : " + str(self.pos) + ", id : " + str(self.agentId) + ", wallet : " + \
+               str(self.wallet) + "," + str(
             self.isVisible) + \
-               "," + str(self.team) + ">"
+               ", team : " + str(self.team) + ", def lvl : " + str(self.deflvl) \
+               + ", atk lvl : " + str(self.attacklvl) + " >"
+
 
 class Brain:
     firstIteration: bool = True
+
     def __init__(self):
         self.everyAgent = None
         self.everyTile = None
@@ -379,9 +393,7 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
 
 
 def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or Action:
-
     target = find_fattest_enemy(view)
-
 
     if target is not None:
 
@@ -410,6 +422,69 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
     return False
 
 
+def check_attack(self: GameState) -> False or Action:
+    agent = find_fattest_enemy(self)
+    if agent is not None:
+        x, y = self.location
+        x2, y2 = agent.pos
+        distance_Manhattan = abs(x - x2) + abs(y - y2)
+        attack_efficiency = agent.wallet * self.attack_ratio * (self.atklvl / (self.atklvl + 1))
+        self.debug_log += f' distance_Manhattan  distance_Manhattan =: {str(distance_Manhattan)}\n'
+        if attack_efficiency >= self.map.gold_count / 5:
+            if x != x2 and y != y2 or distance_Manhattan <= self.ranged_attack_radius:
+                agent.wallet_Round_before = agent.wallet
+                agent.attacker_ID = self.agent_id
+                agent.attacked_round = self.current_round
+                agent.attacker_cool_down_rate = self.attack_ratio
+
+                return Action.RANGED_ATTACK
+            if distance_Manhattan <= self.linear_attack_range:
+
+                agent.wallet_Round_before = agent.wallet
+                agent.attacker_ID = self.agent_id
+                agent.attacked_round = self.current_round
+                agent.attacker_cool_down_rate = self.attack_ratio
+
+                if x > x2:
+                    return Action.LINEAR_ATTACK_UP
+
+                if x < x2:
+                    return Action.LINEAR_ATTACK_DOWN
+
+                if y < y2:
+                    return Action.MOVE_RIGHT
+
+                if y > y2:
+                    return Action.LINEAR_ATTACK_LEFT
+            agent.attacked_round = -1
+    return False
+
+
+def estimate_lvl_def(self: GameState):
+    self_team = 1
+    if self.agent_id > 1: self_team = 2
+
+    for i in range(len(brain.everyAgent)):
+        wallet_Round_before = brain.everyAgent[i].wallet_Round_before
+        wallet = brain.everyAgent[i].wallet
+        if brain.everyAgent[i].team != self_team and self.agent_id == brain.everyAgent[
+            i].attacker_ID and wallet_Round_before > wallet:
+            if brain.everyAgent[i].attacked_round != -1 and self.current_round - \
+                    brain.everyAgent[i].attacked_round == 1 and brain.everyAgent[i].wallet != 0:
+
+                attack_efficiency = wallet_Round_before - wallet
+                A = wallet_Round_before * self.atklvl * brain.everyAgent[i].attacker_attack_ratio
+                def_lvl = (A / attack_efficiency) - self.atklvl
+                round_difference = self.current_round - brain.everyAgent[i].update_deflvl_rund
+                def_lvl_difference = def_lvl - brain.everyAgent[i].deflvl
+
+                if round_difference * 0.75 + brain.everyAgent[
+                    i].wallet_last_attack > def_lvl_difference * self.def_upgrade_cost:
+                    brain.everyAgent[i].update_deflvl_rund = self.current_round
+                    brain.everyAgent[i].deflvl = def_lvl
+                    brain.everyAgent[i].wallet_last_attack = wallet
+
+
 def shouldUpgradeDefence(view: GameState, activationThreshold: float) -> bool:
     if percent(view.rounds, view.current_round) < activationThreshold \
             and view.wallet >= view.def_upgrade_cost:
@@ -432,6 +507,7 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
 # collect golds when retrieving *
 def getAction(view: GameState) -> Action:
     Update(view)
+    estimate_lvl_def(view)
 
     goal = Patrol(view)
 
@@ -450,8 +526,13 @@ def getAction(view: GameState) -> Action:
     for i in brain.everyAgent:
         view.debug_log += str(brain.everyAgent[i]) + "\n"
 
-    attack = shouldAttack(view)
-    if attack and not go_t:
+    # attack = shouldAttack(view)
+    # if attack and not go_t:
+    #     return attack
+
+    attack = check_attack(view)
+
+    if attack:
         return attack
 
     view.debug_log += "" + brain.getVisiblePlacesString() + "\n"
