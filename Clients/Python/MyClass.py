@@ -86,7 +86,7 @@ class Brain:
                         if c.type.value == MapType.AGENT.value or isInTreasury:
                             self.everyTile[i].tempType = MapType.AGENT.value
 
-                            self.everyAgent[c.data].pos = c.coordinates
+                            self.everyAgent[c.data].pos = tuple(c.coordinates)
                             self.everyAgent[c.data].wallet = view.wallets[c.data]
                             self.everyAgent[c.data].isVisible = True
 
@@ -135,24 +135,34 @@ class Step:
 # BFS algorithm
 # If the result list is empty it means the algorithm could not find the answer
 # Either way, the second element in the list is your next turn
-def getShortestPath(everyTile: list, src: tuple[int, int], dst: tuple[int, int]) -> list:
+def getShortestPath(everyTile: list, src: tuple[int, int], dst: tuple[int, int] ,
+                    override_tempType_block=False) -> list:
     # layer 0
     # layer 1
     validTiles: list = [i.pos for i in everyTile if (i.Type not in blockingTypes and
-                                                     i.tempType not in blockingTypes)]
+                                                     (i.tempType not in blockingTypes or
+                                                      override_tempType_block))]
+
+    if override_tempType_block:
+        validTiles.clear()
+        validTiles: list = [i.pos for i in everyTile]
+
+    src = (src[0],src[1])
+    dst = (dst[0],dst[1])
+
     result: list = []
     stack: list = [Step(src, src, 0)]  # initial layer
     stackPos: list = [src]
 
     if src == dst:
-        return [stack[0], stack[0]]
+        return [stack[0], stack[0]] # exit 1
 
     ATL_init = get_connected_nodes_soft(validTiles, src)  # first layer
 
     for i in ATL_init:
         stack.append(Step(i, src, 1))
         if i == dst:
-            return [stack[len(stack) - 1], stack[0]]
+            return [stack[len(stack) - 1], stack[0]] # exit 2
         stackPos.append(i)
 
     end: int = len(stack)
@@ -181,7 +191,7 @@ def getShortestPath(everyTile: list, src: tuple[int, int], dst: tuple[int, int])
                 result.append(stack[i])
                 trackPos = stack[i].pPos
 
-    return result
+    return result # exit 3
 
 
 firstIteration: bool = True
@@ -260,6 +270,8 @@ last_closest_target_dist: float = 0
 
 
 def find_closest_enemy(view: GameState) -> Agent or None:
+    global last_closest_target_dist
+    last_closest_target_dist = -1
     self_team = 1
     if view.agent_id > 1: self_team = 2
 
@@ -269,12 +281,20 @@ def find_closest_enemy(view: GameState) -> Agent or None:
 
     for i in brain.everyAgent:
         if brain.everyAgent[i].isVisible and brain.everyAgent[i].team != self_team:
-            dist = len(getShortestPath(brain.everyTile, view.location, brain.everyAgent[i].pos))
+
+
+            dist = len(getShortestPath(brain.everyTile, view.location , brain.everyAgent[i].pos , True))
             if closest_enemy is None or dist < closest_enemy_dist:
                 closest_enemy = brain.everyAgent[i]
                 closest_enemy_dist = dist
 
-    if closest_enemy is not None: return closest_enemy
+
+
+
+    if closest_enemy is not None:
+        last_closest_target_dist = closest_enemy_dist
+        return closest_enemy
+
     return None
 
 
@@ -310,8 +330,9 @@ def find_closest_type(selfPos: tuple[int, int], targetType: MapType) -> tuple[in
             closets_target = i.pos
             break
 
-        if (i.Type == targetType.value and (i.tempType not in blockingTypes or i.pos == selfPos)) \
-                or i.tempType == targetType.value:
+        if (i.Type == targetType.value and (i.tempType not in blockingTypes
+                                            or i.pos == selfPos)) \
+        or i.tempType == targetType.value:
 
             dist = getAverageDistance(selfPos, [i.pos], isExtreme=True)
             if first_iteration or dist < closets_target_dist:
@@ -469,17 +490,29 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
     return False
 
 
+def inPostPatrol(view: GameState) -> tuple[int,int] or bool:
+    validTiles: list = [i.pos for i in brain.everyTile if i.Type == MapType.TREASURY.value]
+    connected_nodes = get_connected_nodes_soft(validTiles,view.location)
 
-def shouldGoPost(view: GameState) -> tuple[int,int] or bool:
+    if len(connected_nodes)!=0:
+        return random.choice(connected_nodes)
 
-    closest_treasury = find_closest_type(view.location,MapType.TREASURY)
-    if closest_treasury is not None and closest_treasury != view.location: return closest_treasury
     return False
 
-def inPostPatrol(view: GameState) -> tuple[int,int] or bool:
-    0
+def shouldBlock(view: GameState) -> tuple[int,int] or bool:
+    # brain.everyAgent[view.agent_id].isVisible = False
 
-def shouldBlock(view: GameState) -> Action or bool:
+    closest_enemy = find_closest_enemy(view)
+    if closest_enemy is not None:
+
+        if last_closest_target_dist != 2:
+            closest_treasury_to_enemy = find_closest_type(closest_enemy.pos,MapType.TREASURY)
+            if closest_treasury_to_enemy is not None:
+                return closest_treasury_to_enemy
+        else:
+            return view.location
+
+
     return False
 
 
@@ -491,20 +524,26 @@ def Defender(view: GameState) -> Action:
     if shouldUpgradeAttack(view, 30):
         return Action.UPGRADE_ATTACK
 
-    go_p = False
+    go_post = False
 
-    if current_round_percent<=30:
+    if current_round_percent<=0:
         go_g = find_closest_type(view.location, MapType.GOLD)
         if go_g is not None:
             goal = goTo(view, go_g)
     else:
-        go_p = shouldGoPost(view)
-        if go_p:
-            goal = go_p
+        go_post = find_closest_type(view.location, MapType.TREASURY)
+        if go_post is not None and go_post != view.location:
+            goal = goTo(view, go_post)
+        elif go_post == view.location:
+            do_post = inPostPatrol(view)
+            if do_post: goal = do_post
+            do_block = shouldBlock(view)
+            if do_block: goal = do_block
+
 
 
     attack = shouldAttack(view)
-    if attack and not go_p:
+    if attack and not go_post:
         return attack
 
     return getStepTowards(view.location, goal)
