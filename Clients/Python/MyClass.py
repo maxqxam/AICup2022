@@ -45,9 +45,9 @@ class Brain:
     firstIteration: bool = True
 
     def __init__(self):
-        self.everyAgent = None
-        self.everyTile = None
-        self.everyTileAsPos = None
+        self.everyAgent = []
+        self.everyTile = []
+        self.everyTileAsPos = []
 
     def initTiles(self, mapDimensions: tuple[int, int], view: GameState) -> None:
         self.everyAgent = {}
@@ -392,12 +392,12 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
     return False
 
 
-def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or Action:
+def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8, minCoin: int = 5) -> False or Action:
     target = find_fattest_enemy(view)
 
     if target is not None:
 
-        if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
+        if view.attack_ratio <= minimumAttackRatio or target.wallet < minCoin:
             return False
 
         dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
@@ -450,7 +450,6 @@ def estimate_lvl_def(view: GameState):
 
                 if round_difference * 0.75 + brain.everyAgent[i].wallet_last_attack \
                         > def_lvl_difference * view.def_upgrade_cost:
-
                     brain.everyAgent[i].update_defence_level_round = view.current_round
                     brain.everyAgent[i].defence_level = def_lvl
                     brain.everyAgent[i].wallet_last_attack = wallet
@@ -470,16 +469,49 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
     return False
 
 
-# add linear attack block detection ****
-# find the proper time to attack ****
-# find the right balance between upgrades **
-# add get_best_gold and get_fattest_gold ***
-# try to divide agents path's *
-# collect golds when retrieving *
-def getAction(view: GameState) -> Action:
-    Update(view)
-    estimate_lvl_def(view)
 
+def shouldGoPost(view: GameState) -> tuple[int,int] or bool:
+
+    closest_treasury = find_closest_type(view.location,MapType.TREASURY)
+    if closest_treasury is not None and closest_treasury != view.location: return closest_treasury
+    return False
+
+def inPostPatrol(view: GameState) -> tuple[int,int] or bool:
+    0
+
+def shouldBlock(view: GameState) -> Action or bool:
+    return False
+
+
+
+def Defender(view: GameState) -> Action:
+    goal = Patrol(view)
+    current_round_percent = percent(view.rounds , view.current_round)
+
+    if shouldUpgradeAttack(view, 30):
+        return Action.UPGRADE_ATTACK
+
+    go_p = False
+
+    if current_round_percent<=30:
+        go_g = find_closest_type(view.location, MapType.GOLD)
+        if go_g is not None:
+            goal = goTo(view, go_g)
+    else:
+        go_p = shouldGoPost(view)
+        if go_p:
+            goal = go_p
+
+
+    attack = shouldAttack(view)
+    if attack and not go_p:
+        return attack
+
+    return getStepTowards(view.location, goal)
+
+
+
+def Scot(view: GameState) -> Action:
     goal = Patrol(view)
 
     if shouldUpgradeDefence(view, 30):
@@ -491,19 +523,45 @@ def getAction(view: GameState) -> Action:
 
     go_t = retrieveGold(view)
     if go_t:
-        view.debug_log += "\nretrieveGold : " + str(go_t) + " | " + str(view.location) + "\n"
         goal = goTo(view, go_t)
-
-    for i in brain.everyAgent:
-        view.debug_log += str(brain.everyAgent[i]) + "\n"
 
     attack = shouldAttack(view)
     if attack and not go_t:
         return attack
 
+    return getStepTowards(view.location, goal)
 
+
+# Add linear attack block detection ****
+# Find the proper time to attack ****
+# Find the right balance between upgrades **
+# Add get_best_gold and get_fattest_gold ***
+# Try to divide agents path's *
+# Collect golds when retrieving *
+# Add fog vision override ****
+# Make the retrieving agents stay away from the border of treasuries ***
+# Introduce Defender and Scot *****
+def getAction(view: GameState) -> Action:
+    Dispose(view)
+    Update(view)
+
+    estimate_lvl_def(view)
+
+    team = 1
+    if view.agent_id > 1: team = 2
+
+    isDefender: bool = False
+
+    if team == 1 and view.agent_id == 1 \
+            or team == 2 and view.agent_id == 3: isDefender = True
+
+    for i in brain.everyAgent:
+        view.debug_log += str(brain.everyAgent[i]) + "\n"
 
     view.debug_log += "" + brain.getVisiblePlacesString() + "\n"
-    Dispose(view)
 
-    return getStepTowards(view.location, goal)
+
+    if isDefender:
+        return Defender(view)
+
+    return Scot(view)
