@@ -474,7 +474,7 @@ def estimate_lvl_def(self:GameState):
                 round_difference=self.current_round-brain.everyAgent[i].update_deflvl_rund
                 def_lvl_difference= def_lvl-brain.everyAgent[i].deflvl
 
-                if round_difference+brain.everyAgent[i].wallet_last_attack >def_lvl_difference*self.def_upgrade_cost:
+                if round_difference*0.75 + brain.everyAgent[i].wallet_last_attack >def_lvl_difference * self.def_upgrade_cost:
                     brain.everyAgent[i].update_deflvl_rund=self.current_round
                     brain.everyAgent[i].deflvl=def_lvl
                     brain.everyAgent[i].wallet_last_attack= wallet
