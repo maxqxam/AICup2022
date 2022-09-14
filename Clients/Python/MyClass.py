@@ -28,7 +28,7 @@ class Agent:
         self.defence_level: int = 1
         self.wallet_Round_before: int = 1
         self.attacked_round: int = -1  # the round that was attacked:
-        self.attacker_ID: int = -1
+
         self.attacker_attack_ratio: int = 1
         self.update_defence_level_round: int = 1
         self.wallet_last_attack: int = 0
@@ -404,7 +404,7 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
 
         if dist <= view.ranged_attack_radius:
             target.wallet_Round_before = target.wallet
-            target.attacker_ID = view.agent_id
+
             target.attacked_round = view.current_round
             target.attacker_cool_down_rate = view.attack_ratio
             return Action.RANGED_ATTACK
