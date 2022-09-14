@@ -30,6 +30,8 @@ class Agent:
         self.attacked_round:int=-1   # the round that was attacked:
         self.attacker_ID:int=-1
         self.attacker_attack_ratio:int=1
+        self.update_deflvl_rund:int=1
+        self.wallet_last_attack:int=0
 
     def __str__(self):
         return "Agent : < pos : " + str(self.pos) + ", id : " + str(self.agentId) + ", wallet : " +\
@@ -376,7 +378,36 @@ def go_trasury(self: GameState, triggerRange=5) -> bool or tuple[int, int]:
 
     return False
 
+def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or Action:
 
+    target = find_fattest_enemy(view)
+
+
+    if target is not None:
+
+        if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
+            return False
+
+        dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
+
+        if dist <= view.ranged_attack_radius:
+            return Action.RANGED_ATTACK
+
+        if dist <= view.linear_attack_range and (view.location[0] == target.pos[0] or
+                                                 view.location[1] == target.pos[1]):
+            if view.location[0] > target.pos[0]:
+                return Action.LINEAR_ATTACK_UP
+
+            if view.location[0] < target.pos[0]:
+                return Action.LINEAR_ATTACK_DOWN
+
+            if view.location[1] < target.pos[1]:
+                return Action.LINEAR_ATTACK_RIGHT
+
+            if view.location[1] > target.pos[1]:
+                return Action.LINEAR_ATTACK_LEFT
+
+    return False
 def check_attack(self: GameState)->False or Action:
     agent= find_fattest_enemy(self)
     if agent is not None:
@@ -440,8 +471,16 @@ def estimate_lvl_def(self:GameState):
                 attack_efficiency= wallet_Round_before - wallet
                 A= wallet_Round_before*self.atklvl* brain.everyAgent[i].attacker_attack_ratio
                 def_lvl=(A/attack_efficiency)-self.atklvl
-               
-                brain.everyAgent[i].deflvl=def_lvl
+                round_difference=self.current_round-brain.everyAgent[i].update_deflvl_rund
+                def_lvl_difference= def_lvl-brain.everyAgent[i].deflvl
+
+                if round_difference+brain.everyAgent[i].wallet_last_attack >def_lvl_difference*self.def_upgrade_cost:
+                    brain.everyAgent[i].update_deflvl_rund=self.current_round
+                    brain.everyAgent[i].deflvl=def_lvl
+                    brain.everyAgent[i].wallet_last_attack= wallet
+
+
+           
               
 
 def getAction(self: GameState) -> Action :
