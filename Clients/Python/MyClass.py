@@ -428,9 +428,9 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
     return False
 
 
-def estimate_lvl_def(self: GameState):
+def estimate_lvl_def(view: GameState):
     self_team = 1
-    if self.agent_id > 1: self_team = 2
+    if view.agent_id > 1: self_team = 2
 
     for i in range(len(brain.everyAgent)):
         wallet_Round_before = brain.everyAgent[i].wallet_Round_before
@@ -439,19 +439,19 @@ def estimate_lvl_def(self: GameState):
         if brain.everyAgent[i].team != self_team and \
                 wallet_Round_before > wallet:
 
-            if brain.everyAgent[i].attacked_round != -1 and self.current_round - \
+            if brain.everyAgent[i].attacked_round != -1 and view.current_round - \
                     brain.everyAgent[i].attacked_round == 1 and brain.everyAgent[i].wallet != 0:
 
                 attack_efficiency = wallet_Round_before - wallet
-                A = wallet_Round_before * self.atklvl * brain.everyAgent[i].attacker_attack_ratio
-                def_lvl = (A / attack_efficiency) - self.atklvl
-                round_difference = self.current_round - brain.everyAgent[i].update_defence_level_round
+                A = wallet_Round_before * view.atklvl * brain.everyAgent[i].attacker_attack_ratio
+                def_lvl = (A / attack_efficiency) - view.atklvl
+                round_difference = view.current_round - brain.everyAgent[i].update_defence_level_round
                 def_lvl_difference = def_lvl - brain.everyAgent[i].defence_level
 
                 if round_difference * 0.75 + brain.everyAgent[i].wallet_last_attack \
-                        > def_lvl_difference * self.def_upgrade_cost:
+                        > def_lvl_difference * view.def_upgrade_cost:
 
-                    brain.everyAgent[i].update_defence_level_round = self.current_round
+                    brain.everyAgent[i].update_defence_level_round = view.current_round
                     brain.everyAgent[i].defence_level = def_lvl
                     brain.everyAgent[i].wallet_last_attack = wallet
 
