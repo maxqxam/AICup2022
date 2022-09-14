@@ -1,6 +1,14 @@
 from os import makedirs
 from enum import Enum
-import MyClass
+
+
+Error = ""
+
+try:
+    import MyClass
+except Exception as e:
+    Error += " MyClass import Error : "+str(e)+"\n"
+
 
 DEBUG = 1
 
@@ -132,6 +140,7 @@ class GameState:
         try:
             result = MyClass.getAction(self)
         except Exception as e:
+            self.debug_log += Error
             self.debug_log += "MyClass.py Error : " + str(e) + "\n"
 
         return result

@@ -142,14 +142,16 @@ def run_server() -> tuple[int,float]:
     t1:float = time.time()
 
     try:
-        shutil.rmtree(pathlib.Path(CLIENT_LOG_PATH).absolute())
+        if server_run_counter==0:
+            shutil.rmtree(pathlib.Path(CLIENT_LOG_PATH).absolute())
+
     except OSError as e:
         0
 
     # This is still error-prone, we don't know how the user runs python scripts
 
     result_code = subprocess.call("python3 "+SERVER_PATH+" -p1 "+CLIENT_1_PATH+" -p2 "+
-                           CLIENT_2_PATH , shell=True)
+                                  CLIENT_2_PATH , shell=True)
     if result_code!=0:
         result_code = subprocess.call("python " + SERVER_PATH + " -p1 " + CLIENT_1_PATH + " -p2 " +
                                       CLIENT_2_PATH, shell=True)
@@ -157,6 +159,25 @@ def run_server() -> tuple[int,float]:
         result_code = subprocess.call("py " + SERVER_PATH + " -p1 " + CLIENT_1_PATH + " -p2 " +
                                       CLIENT_2_PATH, shell=True)
 
+    try:
+        newPath = CLIENT_LOG_PATH + "/" + str(server_run_counter)
+        os.mkdir(pathlib.Path(newPath).absolute())
+        target0 = pathlib.Path(CLIENT_LOG_PATH+"/AGENT0.log").absolute()
+        target1 = pathlib.Path(CLIENT_LOG_PATH+"/AGENT1.log").absolute()
+        target2 = pathlib.Path(CLIENT_LOG_PATH + "/AGENT2.log").absolute()
+        target3 = pathlib.Path(CLIENT_LOG_PATH + "/AGENT3.log").absolute()
+
+
+        dst0 = pathlib.Path(newPath + "/AGENT0.log").absolute()
+        dst1 = pathlib.Path(newPath + "/AGENT1.log").absolute()
+
+        shutil.move(target0,dst0)
+        shutil.move(target1,dst1)
+        os.remove(target2)
+        os.remove(target3)
+
+    except OSError as e:
+        0
 
     t2:float = time.time()
     return result_code,t2-t1
