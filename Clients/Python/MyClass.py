@@ -385,7 +385,7 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
 
     if target is not None:
 
-        if view.attack_ratio <= minimumAttackRatio or target.wallet == 0:
+        if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
             return False
 
         dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
@@ -429,17 +429,19 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
 # find the right balance between upgrades **
 # add get_best_gold and get_fattest_gold ***
 # try to divide agents path's *
+# collect golds when retrieving *
 def getAction(view: GameState) -> Action:
     Update(view)
 
     goal = Patrol(view)
 
-    if shouldUpgradeDefence(view, 20):
+    if shouldUpgradeDefence(view, 30):
         return Action.UPGRADE_DEFENCE
 
     go_g = find_closest_type(view.location, MapType.GOLD)
     if go_g is not None:
         goal = goTo(view, go_g)
+
     go_t = retrieveGold(view)
     if go_t:
         view.debug_log += "\nretrieveGold : " + str(go_t) + " | " + str(view.location) + "\n"
