@@ -28,11 +28,11 @@ class Agent:
         self.team = team
 
     attacklvl:int=1
-    deflvl:int=-1
+    deflvl:int=1
     wallet_Round_before:int=1
     attacked_round:int=-1   #the round that was attacked:
     attacker_ID:int=-1
-    attacker_cool_down_rate:int=1
+    attacker_attack_ratio:int=1
 
     def __str__(self):
         return "Agent : <" + str(self.pos) + "," + str(self.agentId) + "," + str(self.wallet) + "," + str(
@@ -388,17 +388,20 @@ def check_attack(self: GameState)->False or Action:
         self.debug_log += f' distance_Manhattan  distance_Manhattan =: {str( distance_Manhattan )}\n'
         if attack_efficiency>=self.map.gold_count/5:
             if x != x2 and y != y2 or distance_Manhattan <= self.ranged_attack_radius:
-                # if distance_Manhattan <= self.ranged_attack_radius:
+
                 agent.wallet_Round_before=agent.wallet
                 agent.attacker_ID=self.agent_id
                 agent.attacked_round=self.current_round
                 agent.attacker_cool_down_rate=self.attack_ratio
+
                 return Action.RANGED_ATTACK 
             if distance_Manhattan <= self.linear_attack_range:
+
                 agent.wallet_Round_before=agent.wallet
                 agent.attacker_ID=self.agent_id
                 agent.attacked_round=self.current_round
                 agent.attacker_cool_down_rate=self.attack_ratio
+
                 if x > x2:
                      return Action.LINEAR_ATTACK_UP 
 
@@ -424,25 +427,28 @@ def shouldAttack(self: GameState, attackThreshold: float) -> bool:
 
     return False
 
-def estimate_lvl(self:GameState):
+def estimate_lvl_def(self:GameState):
     self_team = 1
     if self.agent_id > 1: self_team = 2
     
     for i in range(len(brain.everyAgent)):
-        if brain.everyAgent[i].team != self_team and self.agent_id== brain.everyAgent[i].attacker_ID and brain.everyAgent[i].wallet_Round_before>brain.everyAgent[i].wallet:
-            if brain.everyAgent[i].attacked_round !=-1 and self.current_round - brain.everyAgent[i].attacked_round==1 :
-                attack_efficiency=brain.everyAgent[i].wallet_Round_before - brain.everyAgent[i].wallet
-                A=brain.everyAgent[i].wallet_Round_before*self.atklvl* brain.everyAgent[i].attacker_cool_down_rate
-                def_lvl=(A/attack_efficiency)-self.atklvl
-                if def_lvl>brain.everyAgent[i].deflvl:
-                    brain.everyAgent[i].deflvl=def_lvl
+        wallet_Round_before=brain.everyAgent[i].wallet_Round_before
+        wallet=brain.everyAgent[i].wallet
+        if brain.everyAgent[i].team != self_team and self.agent_id== brain.everyAgent[i].attacker_ID and wallet_Round_before> wallet:
+            if brain.everyAgent[i].attacked_round !=-1 and self.current_round - brain.everyAgent[i].attacked_round==1 and brain.everyAgent[i].wallet !=0:
 
-                self.debug_log += f'  brain.everyAgent[i].deflvl  brain.everyAgent[i].deflvl: {str(  brain.everyAgent[i].deflvl)}\n'
+                attack_efficiency= wallet_Round_before - wallet
+                A= wallet_Round_before*self.atklvl* brain.everyAgent[i].attacker_attack_ratio
+                def_lvl=(A/attack_efficiency)-self.atklvl
+               
+                brain.everyAgent[i].deflvl=def_lvl
+              
+                
 
 
 def getAction(self: GameState) -> Action :
     Update(self)
-   
+    estimate_lvl_def(self)
     goal = Patrol(self)
 
     x = find_closest_type(self.location, MapType.GOLD)
@@ -462,5 +468,5 @@ def getAction(self: GameState) -> Action :
 
     self.debug_log += "" + brain.getVisiblePlacesString() + "\n"
     Dispose(self)
-    estimate_lvl(self)
+   
     return getStepTowards(self.location, goal)
