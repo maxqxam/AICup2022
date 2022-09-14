@@ -24,17 +24,19 @@ class Agent:
         self.wallet: int = wallet
         self.team = team
 
-    attacklvl:int=1
-    deflvl:int=1
-    wallet_Round_before:int=1
-    attacked_round:int=-1   #the round that was attacked:
-    attacker_ID:int=-1
-    attacker_attack_ratio:int=1
+        self.attacklvl:int=1
+        self.deflvl:int=1
+        self.wallet_Round_before:int=1
+        self.attacked_round:int=-1   # the round that was attacked:
+        self.attacker_ID:int=-1
+        self.attacker_attack_ratio:int=1
 
     def __str__(self):
-        return "Agent : <" + str(self.pos) + "," + str(self.agentId) + "," + str(self.wallet) + "," + str(
+        return "Agent : < pos : " + str(self.pos) + ", id : " + str(self.agentId) + ", wallet : " +\
+               str(self.wallet) + "," + str(
             self.isVisible) + \
-               "," + str(self.team) + ">"
+               ", team : " + str(self.team) +", def lvl : "+str(self.deflvl) \
+               +", atk lvl : "+str(self.attacklvl)+" >"
 
 
 class Brain:
@@ -424,6 +426,7 @@ def shouldAttack(self: GameState, attackThreshold: float) -> bool:
 
     return False
 
+
 def estimate_lvl_def(self:GameState):
     self_team = 1
     if self.agent_id > 1: self_team = 2
@@ -440,8 +443,6 @@ def estimate_lvl_def(self:GameState):
                
                 brain.everyAgent[i].deflvl=def_lvl
               
-                
-
 
 def getAction(self: GameState) -> Action :
     Update(self)
@@ -455,13 +456,14 @@ def getAction(self: GameState) -> Action :
     if x:
         goal = goTo(self, x)
 
-    self.debug_log += "closest_gold : " + str(x) + "\n"
 
     for i in brain.everyAgent:
         self.debug_log += str(brain.everyAgent[i]) + "\n"
-    atack=check_attack(self)
-    if atack:
-        return atack
+
+    attack=check_attack(self)
+
+    if attack:
+        return attack
 
     self.debug_log += "" + brain.getVisiblePlacesString() + "\n"
     Dispose(self)
