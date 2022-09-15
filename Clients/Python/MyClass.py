@@ -48,7 +48,10 @@ class Brain:
     def __init__(self):
         self.everyAgent = None
         self.everyTile = None
+        self.everyFog = None
+        self.last_tested_fog = None
         self.everyTileAsPos = None
+
 
     def initTiles(self, mapDimensions: tuple[int, int], view: GameState) -> None:
         self.everyAgent = {}
@@ -57,9 +60,10 @@ class Brain:
             if i > 1: team = 2
 
             self.everyAgent[i] = Agent((0, 0), i, 0, team)
-
+        self.everyFog = []
         self.everyTile = []
         self.everyTileAsPos = []
+
         for i in range(0, mapDimensions[0]):
             for c in range(0, mapDimensions[1]):
                 Type = MapType.UNKNOWN.value
@@ -83,6 +87,10 @@ class Brain:
                                 str(self.everyTile[i].Type)+" , new type : "+str(c.type.value) +"\n"
                             self.everyTile[i].isOverRidden = True
 
+                        if c.type.value == MapType.FOG.value \
+                        and self.everyTile[i].pos not in self.everyFog:
+                            self.everyFog.append(self.everyTile[i].pos)
+
                         self.everyTile[i].Type = c.type.value
                         if c.type.value == MapType.TREASURY.value:
                             if c.data != -1:
@@ -103,6 +111,7 @@ class Brain:
                     #     self.everyTile[i].tempType = MapType.AGENT.value
 
     def flushTiles(self):
+        if self.everyTile is None: return
         for i in range(0, len(self.everyTile)):
             self.everyTile[i].tempType = MapType.UNKNOWN.value
 
@@ -350,6 +359,14 @@ def Update(view: GameState) -> None:
     if len(tail) > TAIL_MAX_SIZE:
         tail.pop(0)
 
+    if brain.last_tested_fog is not None:
+        view.debug_log += "\n" + "Last goal was a fog , result : " + str(view.last_action) + "\n"
+        if view.last_action == -1:
+            for i in range(0, len(brain.everyTile)):
+                if tuple(brain.everyTile[i].pos) == tuple(brain.last_tested_fog):
+                    brain.everyTile[i].Type = MapType.WALL.value
+                    brain.everyTile[i].isOverRidden = True
+
 
 def Dispose(view: GameState) -> None:
     brain.flushTiles()
@@ -487,8 +504,11 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
 # 4 _ add get_best_gold and get_fattest_gold ***
 # 5 _ try to divide agents path's *
 # 6 _ collect golds when retrieving *
-# 7 _ add permanent MapType override ****
+# 7 _ add permanent MapType override **** , DONE
+# 8 _ add wall in fog detection **** , DONE
+
 def getAction(view: GameState) -> Action:
+    Dispose(view)
     Update(view)
     estimate_lvl_def(view)
 
@@ -516,6 +536,14 @@ def getAction(view: GameState) -> Action:
 
 
     view.debug_log += "" + brain.getVisiblePlacesString() + "\n"
-    Dispose(view)
+
+    view.debug_log += "\n everyFog : "+str(brain.everyFog)+"\n"
+    view.debug_log += "\n goal : "+str(goal)+"\n"
+
+
+    if goal in brain.everyFog:
+        view.debug_log += "\n goal is a fog! \n"
+        brain.last_tested_fog = goal
+    else: brain.last_tested_fog = None
 
     return getStepTowards(view.location, goal)

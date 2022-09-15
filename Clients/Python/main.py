@@ -117,15 +117,15 @@ class GameState:
     def debug(self) -> None:
         # Customize to your needs
         self.debug_log += f'round: {str(self.current_round)}\n'
-        self.debug_log += f'location: {str(self.location)}\n'
-        # self.debug_log += f'Map: {str(self.map)}\n'
-        self.debug_log += f'attack ratio: {str(self.attack_ratio)}\n'
-        self.debug_log += f'defence level: {str(self.deflvl)}\n'
-        self.debug_log += f'attack level: {str(self.atklvl)}\n'
-        self.debug_log += f'wallet: {str(self.wallet)}\n'
-        self.debug_log += f'safe wallet: {str(self.safe_wallet)}\n'
-        self.debug_log += f'list of wallets: {str(self.wallets)}\n'
-        self.debug_log += f'last action: {str(self.last_action)}\n'
+        # self.debug_log += f'location: {str(self.location)}\n'
+        # # self.debug_log += f'Map: {str(self.map)}\n'
+        # self.debug_log += f'attack ratio: {str(self.attack_ratio)}\n'
+        # self.debug_log += f'defence level: {str(self.deflvl)}\n'
+        # self.debug_log += f'attack level: {str(self.atklvl)}\n'
+        # self.debug_log += f'wallet: {str(self.wallet)}\n'
+        # self.debug_log += f'safe wallet: {str(self.safe_wallet)}\n'
+        # self.debug_log += f'list of wallets: {str(self.wallets)}\n'
+        # self.debug_log += f'last action: {str(self.last_action)}\n'
         self.debug_log += f'{60 * "-"}\n'
 
     def debug_file(self) -> None:
