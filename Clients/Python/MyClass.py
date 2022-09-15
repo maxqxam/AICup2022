@@ -524,8 +524,6 @@ def Defender(view: GameState) -> Action:
     if shouldUpgradeAttack(view, 30):
         return Action.UPGRADE_ATTACK
 
-    go_post = False
-
     if current_round_percent<=0:
         go_g = find_closest_type(view.location, MapType.GOLD)
         if go_g is not None:
@@ -542,15 +540,15 @@ def Defender(view: GameState) -> Action:
 
 
 
-    attack = shouldAttack(view)
-    if attack and not go_post:
+    attack = shouldAttack(view,minCoin=1)
+    if attack and goal == view.location:
         return attack
 
     return getStepTowards(view.location, goal)
 
 
 
-def Scot(view: GameState) -> Action:
+def Scott(view: GameState) -> Action:
     goal = Patrol(view)
 
     if shouldUpgradeDefence(view, 30):
@@ -579,7 +577,7 @@ def Scot(view: GameState) -> Action:
 # Collect golds when retrieving *
 # Add fog vision override ****
 # Make the retrieving agents stay away from the border of treasuries ***
-# Introduce Defender and Scot *****
+# Introduce Defender and Scott *****
 def getAction(view: GameState) -> Action:
     Dispose(view)
     Update(view)
@@ -603,4 +601,4 @@ def getAction(view: GameState) -> Action:
     if isDefender:
         return Defender(view)
 
-    return Scot(view)
+    return Defender(view)
