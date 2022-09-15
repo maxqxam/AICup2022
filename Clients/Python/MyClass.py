@@ -27,22 +27,11 @@ class Agent:
         self.agentId: int = agentId
         self.wallet: int = wallet
         self.team = team
-
-        self.attack_level: int = 1
-        self.defence_level: int = 1
-        self.wallet_Round_before: int = 1
-        self.attacked_round: int = -1  # the round that was attacked:
-
-        self.attacker_attack_ratio: int = 1
-        self.update_defence_level_round: int = 1
-        self.wallet_last_attack: int = 0
-
     def __str__(self):
         return "Agent : < pos : " + str(self.pos) + ", id : " + str(self.agentId) + ", wallet : " + \
                str(self.wallet) + "," + str(
             self.isVisible) + \
-               ", team : " + str(self.team) + ", def lvl : " + str(self.defence_level) \
-               + ", atk lvl : " + str(self.attack_level) + " >"
+               ", team : " + str(self.team) + " >"
 
 
 class Brain:
@@ -479,10 +468,6 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
         dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
 
         if dist <= view.ranged_attack_radius:
-            target.wallet_Round_before = target.wallet
-
-            target.attacked_round = view.current_round
-            target.attacker_cool_down_rate = view.attack_ratio
             return Action.RANGED_ATTACK
 
         if dist <= view.linear_attack_range and (view.location[0] == target.pos[0] or
@@ -502,34 +487,6 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
         target.attacked_round = -1
 
     return False
-
-
-def estimate_lvl_def(view: GameState):
-    self_team = 1
-    if view.agent_id > 1: self_team = 2
-
-    for i in range(len(brain.everyAgent)):
-        wallet_Round_before = brain.everyAgent[i].wallet_Round_before
-        wallet = brain.everyAgent[i].wallet
-
-        if brain.everyAgent[i].team != self_team and \
-                wallet_Round_before > wallet:
-
-            if brain.everyAgent[i].attacked_round != -1 and view.current_round - \
-                    brain.everyAgent[i].attacked_round == 1 and brain.everyAgent[i].wallet != 0:
-
-                attack_efficiency = wallet_Round_before - wallet
-                A = wallet_Round_before * view.atklvl * brain.everyAgent[i].attacker_attack_ratio
-                def_lvl = (A / attack_efficiency) - view.atklvl
-                round_difference = view.current_round - brain.everyAgent[i].update_defence_level_round
-                def_lvl_difference = def_lvl - brain.everyAgent[i].defence_level
-
-                if round_difference * 0.75 + brain.everyAgent[i].wallet_last_attack \
-                        > def_lvl_difference * view.def_upgrade_cost:
-
-                    brain.everyAgent[i].update_defence_level_round = view.current_round
-                    brain.everyAgent[i].defence_level = def_lvl
-                    brain.everyAgent[i].wallet_last_attack = wallet
 
 
 def shouldUpgradeDefence(view: GameState, activationThreshold: float) -> bool:
@@ -569,14 +526,11 @@ def shouldUpgrade(view: GameState , activationThreshold: float) -> Action or boo
 def getAction(view: GameState) -> Action:
     Dispose(view)
     Update(view)
-    estimate_lvl_def(view)
 
     goal = Patrol(view)
 
-
     x = shouldUpgrade(view, 30)
     if x: return x
-
 
     # go_g = find_closest_type(view.location, MapType.GOLD)
     go_g = find_best_gold(view)
