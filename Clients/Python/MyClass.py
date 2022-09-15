@@ -481,8 +481,7 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
 
         # if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
         #     return False
-        view.debug_log += f"(target.wallet*view.attack_ratio*view.atklvl)/((target.agentId {target.agentId} )): " + str(target.wallet) + "\n"
-        if ((target.wallet*view.attack_ratio*view.atklvl)/((view.atklvl+target.defence_level)) < 1) :
+        if target.wallet < 3 or view.attack_ratio <= minimumAttackRatio:
             return False
         every_gold_before= brain.everyGold
         dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
