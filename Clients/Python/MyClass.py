@@ -17,7 +17,7 @@ class Tile:
         self.isOverRidden: bool = False
 
     def __str__(self):
-        return "Tile : <"+str(self.pos)+","+str(self.Type)+","+str(self.tempType)+","+str(self.data)+">"
+        return "Tile : <" + str(self.pos) + "," + str(self.Type) + "," + str(self.tempType) + "," + str(self.data) + ">"
 
 
 class Agent:
@@ -27,6 +27,7 @@ class Agent:
         self.agentId: int = agentId
         self.wallet: int = wallet
         self.team = team
+
     def __str__(self):
         return "Agent : < pos : " + str(self.pos) + ", id : " + str(self.agentId) + ", wallet : " + \
                str(self.wallet) + "," + str(
@@ -45,7 +46,6 @@ class Brain:
         self.last_tested_fog = None
         self.everyTileAsPos = None
 
-
     def initTiles(self, mapDimensions: tuple[int, int], view: GameState) -> None:
         self.everyAgent = {}
         for i in range(0, 4):
@@ -57,7 +57,6 @@ class Brain:
         self.everyGold = []
         self.everyTile = []
         self.everyTileAsPos = []
-
 
         for i in range(0, mapDimensions[0]):
             for c in range(0, mapDimensions[1]):
@@ -77,13 +76,14 @@ class Brain:
                 if tuple(self.everyTile[i].pos) == tuple(c.coordinates):
                     if c.type.value in permanentTypes and not self.everyTile[i].isOverRidden:
                         if self.everyTile[i].Type != MapType.UNKNOWN.value \
-                        and self.everyTile[i].Type != c.type.value: # This ensures treasuries behind fogs are found
-                            view.debug_log+="\n Found new MapType ! , previous type : "+\
-                                str(self.everyTile[i].Type)+" , new type : "+str(c.type.value) +"\n"
+                                and self.everyTile[
+                            i].Type != c.type.value:  # This ensures treasuries behind fogs are found
+                            view.debug_log += "\n Found new MapType ! , previous type : " + \
+                                              str(self.everyTile[i].Type) + " , new type : " + str(c.type.value) + "\n"
                             self.everyTile[i].isOverRidden = True
 
                         if c.type.value == MapType.FOG.value \
-                        and self.everyTile[i].pos not in self.everyFog:
+                                and self.everyTile[i].pos not in self.everyFog:
                             self.everyFog.append(self.everyTile[i].pos)
 
                         self.everyTile[i].Type = c.type.value
@@ -100,7 +100,7 @@ class Brain:
                             self.everyAgent[c.data].wallet = view.wallets[c.data]
                             self.everyAgent[c.data].isVisible = True
 
-                        if c.type.value == MapType.GOLD.value :
+                        if c.type.value == MapType.GOLD.value:
                             self.everyGold.append(self.everyTile[i])
 
                     self.everyTile[i].data = c.data
@@ -277,17 +277,18 @@ tail: list = []
 TAIL_MAX_SIZE: int = 5
 last_closest_target_dist: float = 0
 
-def find_best_gold(view: GameState) -> tuple[int,int] or None:
+
+def find_best_gold(view: GameState) -> tuple[int, int] or None:
     best_gold = None
     best_value = 0
 
     for i in brain.everyGold:
-        dist = len(getShortestPath(brain.everyTile,view.location,i.pos))
+        dist = len(getShortestPath(brain.everyTile, view.location, i.pos))
         count = i.data
         value = count
 
         for c in brain.everyGold:
-            if c == i : break
+            if c == i: break
             dist2 = len(getShortestPath(brain.everyTile, i.pos, c.pos))
             count2 = c.data
 
@@ -302,14 +303,11 @@ def find_best_gold(view: GameState) -> tuple[int,int] or None:
             value /= dist
         else:
             value = 0
-        if best_gold is None or value>best_value:
+        if best_gold is None or value > best_value:
             best_value = value
             best_gold = i.pos
 
     return best_gold
-
-
-
 
 
 def find_closest_enemy(view: GameState) -> Agent or None:
@@ -380,17 +378,48 @@ def find_closest_type(selfPos: tuple[int, int], targetType: MapType) -> tuple[in
     return None
 
 
+ally_pre_visible = False
+
+
 def Update(view: GameState) -> None:
+    global ally_pre_visible
     if Brain.firstIteration:
         brain.initTiles((view.map.height, view.map.width), view)
         Brain.firstIteration = False
 
     brain.updateTiles(view.map.grid, view)
 
-    tail.append(list(view.location))
+    team = 1
+    if view.agent_id > 1:
+        team = 2
+    ally_visible = False
+    ally_id = 0
 
-    if len(tail) > TAIL_MAX_SIZE:
-        tail.pop(0)
+    for c in brain.everyAgent:
+        i = brain.everyAgent[c]
+        if i.agentId != view.agent_id and i.team == team and i.isVisible:
+            ally_visible = True
+            ally_id = i.agentId
+            break
+
+    if ally_visible:
+        # tail.clear()
+        for i in range(0,TAIL_MAX_SIZE):
+            tail.append(tuple(brain.everyAgent[ally_id].pos))
+    else:
+        tail.append(tuple(view.location))
+
+    if ally_pre_visible:
+
+        while len(tail) > TAIL_MAX_SIZE:
+            tail.pop(0)
+    else:
+        if len(tail) > TAIL_MAX_SIZE:
+            tail.pop(0)
+
+    ally_pre_visible = ally_visible
+
+
 
     if brain.last_tested_fog is not None:
         view.debug_log += "\n" + "Last goal was a fog , result : " + str(view.last_action) + "\n"
@@ -402,9 +431,8 @@ def Update(view: GameState) -> None:
 
 
 def Dispose(view: GameState) -> None:
-
     if brain.everyGold is not None:
-        view.debug_log+="\neveryGold : "+str([str(i) for i in brain.everyGold]) +"\n"
+        view.debug_log += "\neveryGold : " + str([str(i) for i in brain.everyGold]) + "\n"
 
     brain.flushTiles()
 
@@ -501,15 +529,16 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
             and view.wallet >= view.atk_upgrade_cost:
         return True
     return False
-#
-def shouldUpgrade(view: GameState , activationThreshold: float) -> Action or bool:
 
+
+#
+def shouldUpgrade(view: GameState, activationThreshold: float) -> Action or bool:
     if view.deflvl > view.atklvl:
         x = shouldUpgradeAttack(view, activationThreshold)
-        if x : return Action.UPGRADE_ATTACK
+        if x: return Action.UPGRADE_ATTACK
 
-    x = shouldUpgradeDefence(view,activationThreshold)
-    if x : return Action.UPGRADE_DEFENCE
+    x = shouldUpgradeDefence(view, activationThreshold)
+    if x: return Action.UPGRADE_DEFENCE
 
     return False
 
@@ -518,7 +547,7 @@ def shouldUpgrade(view: GameState , activationThreshold: float) -> Action or boo
 # 2 _ find the proper time to attack ****
 # 3 _ find the right balance between upgrades ** , DONE - RESULTS ARE FUCKING FANTASTIC!
 # 4 _ add find_best_gold and find_fattest_gold *** , DONE
-# 5 _ try to divide agents path's *
+# 5 _ try to divide agents path's * , Checkpoint
 # 6 _ collect golds when retrieving *
 # 7 _ add permanent MapType override **** , DONE
 # 8 _ add wall in fog detection **** , DONE
@@ -549,17 +578,15 @@ def getAction(view: GameState) -> Action:
     if attack and not go_t:
         return attack
 
-
-
     view.debug_log += "" + brain.getVisiblePlacesString() + "\n"
 
-    view.debug_log += "\n everyFog : "+str(brain.everyFog)+"\n"
-    view.debug_log += "\n goal : "+str(goal)+"\n"
-
+    view.debug_log += "\n everyFog : " + str(brain.everyFog) + "\n"
+    view.debug_log += "\n goal : " + str(goal) + "\n"
 
     if goal in brain.everyFog:
         view.debug_log += "\n goal is a fog! \n"
         brain.last_tested_fog = goal
-    else: brain.last_tested_fog = None
+    else:
+        brain.last_tested_fog = None
 
     return getStepTowards(view.location, goal)
