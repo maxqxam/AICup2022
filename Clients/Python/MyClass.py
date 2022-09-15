@@ -544,11 +544,22 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
             and view.wallet >= view.atk_upgrade_cost:
         return True
     return False
+#
+def shouldUpgrade(view: GameState , activationThreshold: float) -> Action or bool:
+
+    if view.deflvl > view.atklvl:
+        x = shouldUpgradeAttack(view, activationThreshold)
+        if x : return Action.UPGRADE_ATTACK
+
+    x = shouldUpgradeDefence(view,activationThreshold)
+    if x : return Action.UPGRADE_DEFENCE
+
+    return False
 
 
 # 1 _ add linear attack block detection ****
 # 2 _ find the proper time to attack ****
-# 3 _ find the right balance between upgrades **
+# 3 _ find the right balance between upgrades ** , DONE - RESULTS ARE FUCKING FANTASTIC!
 # 4 _ add find_best_gold and find_fattest_gold *** , DONE
 # 5 _ try to divide agents path's *
 # 6 _ collect golds when retrieving *
@@ -562,8 +573,10 @@ def getAction(view: GameState) -> Action:
 
     goal = Patrol(view)
 
-    if shouldUpgradeDefence(view, 30):
-        return Action.UPGRADE_DEFENCE
+
+    x = shouldUpgrade(view, 30)
+    if x: return x
+
 
     # go_g = find_closest_type(view.location, MapType.GOLD)
     go_g = find_best_gold(view)
