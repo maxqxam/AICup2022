@@ -14,6 +14,7 @@ class Tile:
         self.Type = Type
         self.tempType = tempType
         self.data: int = data
+        self.isOverRidden: bool = False
 
 
 class Agent:
@@ -75,7 +76,13 @@ class Brain:
             for c in visibleTiles:
                 isInTreasury = False
                 if tuple(self.everyTile[i].pos) == tuple(c.coordinates):
-                    if c.type.value in permanentTypes:
+                    if c.type.value in permanentTypes and not self.everyTile[i].isOverRidden:
+                        if self.everyTile[i].Type != MapType.UNKNOWN.value \
+                        and self.everyTile[i].Type != c.type.value: # This ensures treasuries behind fogs are found
+                            view.debug_log+="\n Found new MapType ! , previous type : "+\
+                                str(self.everyTile[i].Type)+" , new type : "+str(c.type.value) +"\n"
+                            self.everyTile[i].isOverRidden = True
+
                         self.everyTile[i].Type = c.type.value
                         if c.type.value == MapType.TREASURY.value:
                             if c.data != -1:
@@ -138,6 +145,10 @@ class Step:
 def getShortestPath(everyTile: list, src: tuple[int, int], dst: tuple[int, int]) -> list:
     # layer 0
     # layer 1
+
+    src = tuple(src)
+    dst = tuple(dst)
+
     validTiles: list = [i.pos for i in everyTile if (i.Type not in blockingTypes and
                                                      i.tempType not in blockingTypes)]
     result: list = []
@@ -470,12 +481,13 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
     return False
 
 
-# add linear attack block detection ****
-# find the proper time to attack ****
-# find the right balance between upgrades **
-# add get_best_gold and get_fattest_gold ***
-# try to divide agents path's *
-# collect golds when retrieving *
+# 1 _ add linear attack block detection ****
+# 2 _ find the proper time to attack ****
+# 3 _ find the right balance between upgrades **
+# 4 _ add get_best_gold and get_fattest_gold ***
+# 5 _ try to divide agents path's *
+# 6 _ collect golds when retrieving *
+# 7 _ add permanent MapType override ****
 def getAction(view: GameState) -> Action:
     Update(view)
     estimate_lvl_def(view)
@@ -497,9 +509,9 @@ def getAction(view: GameState) -> Action:
     for i in brain.everyAgent:
         view.debug_log += str(brain.everyAgent[i]) + "\n"
 
-    attack = shouldAttack(view)
-    if attack and not go_t:
-        return attack
+    # attack = shouldAttack(view)
+    # if attack and not go_t:
+    #     return attack
 
 
 
