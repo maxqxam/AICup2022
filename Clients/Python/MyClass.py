@@ -81,6 +81,9 @@ class Brain:
 
     def updateTiles(self, visibleTiles: list, view: GameState) -> None:
 
+        for i in range(0,len(view.wallets)):
+            self.everyAgent[i].wallet = view.wallets[i]
+
         isInTreasury: bool = False
         for i in self.everyAgent:
             self.everyAgent[i].isVisible = False
@@ -583,6 +586,8 @@ def getAction(view: GameState) -> Action:
     if go_t:
         view.debug_log += "\nretrieveGold : " + str(go_t) + " | " + str(view.location) + "\n"
         goal = goTo(view, go_t)
+
+    view.debug_log+="\n Wallets : "+str(view.wallets)+"\n"
 
     for i in brain.everyAgent:
         view.debug_log += str(brain.everyAgent[i]) + "\n"
