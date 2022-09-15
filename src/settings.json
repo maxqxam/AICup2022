@@ -6,7 +6,7 @@
   "linear_attack_range": 3,
   "ranged_attack_radius": 2,
 
-  "gold_count": 10,
+  "gold_count": 25,
 
   "agent_sight_range": 9,
   "timeout": 2,

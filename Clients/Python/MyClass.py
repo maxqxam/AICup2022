@@ -16,6 +16,9 @@ class Tile:
         self.data: int = data
         self.isOverRidden: bool = False
 
+    def __str__(self):
+        return "Tile : <"+str(self.pos)+","+str(self.Type)+","+str(self.tempType)+","+str(self.data)+">"
+
 
 class Agent:
     def __init__(self, pos: tuple[int, int], agentId: int, wallet: int, team: int):
@@ -49,6 +52,7 @@ class Brain:
         self.everyAgent = None
         self.everyTile = None
         self.everyFog = None
+        self.everyGold = None
         self.last_tested_fog = None
         self.everyTileAsPos = None
 
@@ -61,8 +65,10 @@ class Brain:
 
             self.everyAgent[i] = Agent((0, 0), i, 0, team)
         self.everyFog = []
+        self.everyGold = []
         self.everyTile = []
         self.everyTileAsPos = []
+
 
         for i in range(0, mapDimensions[0]):
             for c in range(0, mapDimensions[1]):
@@ -105,6 +111,9 @@ class Brain:
                             self.everyAgent[c.data].wallet = view.wallets[c.data]
                             self.everyAgent[c.data].isVisible = True
 
+                        if c.type.value == MapType.GOLD.value :
+                            self.everyGold.append(self.everyTile[i])
+
                     self.everyTile[i].data = c.data
 
                     # if c.data!=-1:
@@ -114,6 +123,7 @@ class Brain:
         if self.everyTile is None: return
         for i in range(0, len(self.everyTile)):
             self.everyTile[i].tempType = MapType.UNKNOWN.value
+        brain.everyGold.clear()
 
     def getVisiblePlacesString(self) -> str:
         text: str = ""
@@ -278,6 +288,40 @@ tail: list = []
 TAIL_MAX_SIZE: int = 5
 last_closest_target_dist: float = 0
 
+def find_best_gold(view: GameState) -> tuple[int,int] or None:
+    best_gold = None
+    best_value = 0
+
+    for i in brain.everyGold:
+        dist = len(getShortestPath(brain.everyTile,view.location,i.pos))
+        count = i.data
+        value = count
+
+        for c in brain.everyGold:
+            if c == i : break
+            dist2 = len(getShortestPath(brain.everyTile, i.pos, c.pos))
+            count2 = c.data
+
+            if dist2 != 0:
+                value2 = count2 / dist2
+            else:
+                value2 = 0
+
+            value += value2
+
+        if dist != 0:
+            value /= dist
+        else:
+            value = 0
+        if best_gold is None or value>best_value:
+            best_value = value
+            best_gold = i.pos
+
+    return best_gold
+
+
+
+
 
 def find_closest_enemy(view: GameState) -> Agent or None:
     self_team = 1
@@ -369,6 +413,10 @@ def Update(view: GameState) -> None:
 
 
 def Dispose(view: GameState) -> None:
+
+    if brain.everyGold is not None:
+        view.debug_log+="\neveryGold : "+str([str(i) for i in brain.everyGold]) +"\n"
+
     brain.flushTiles()
 
 
@@ -501,7 +549,7 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
 # 1 _ add linear attack block detection ****
 # 2 _ find the proper time to attack ****
 # 3 _ find the right balance between upgrades **
-# 4 _ add get_best_gold and get_fattest_gold ***
+# 4 _ add find_best_gold and find_fattest_gold *** , DONE
 # 5 _ try to divide agents path's *
 # 6 _ collect golds when retrieving *
 # 7 _ add permanent MapType override **** , DONE
@@ -517,7 +565,8 @@ def getAction(view: GameState) -> Action:
     if shouldUpgradeDefence(view, 30):
         return Action.UPGRADE_DEFENCE
 
-    go_g = find_closest_type(view.location, MapType.GOLD)
+    # go_g = find_closest_type(view.location, MapType.GOLD)
+    go_g = find_best_gold(view)
     if go_g is not None:
         goal = goTo(view, go_g)
 
@@ -529,9 +578,9 @@ def getAction(view: GameState) -> Action:
     for i in brain.everyAgent:
         view.debug_log += str(brain.everyAgent[i]) + "\n"
 
-    # attack = shouldAttack(view)
-    # if attack and not go_t:
-    #     return attack
+    attack = shouldAttack(view)
+    if attack and not go_t:
+        return attack
 
 
 
