@@ -3,6 +3,8 @@ from main import GameState
 from main import Action
 from main import MapType
 
+every_gold_before=None
+
 permanentTypes = [i.value for i in [MapType.WALL, MapType.EMPTY, MapType.TREASURY, MapType.FOG]]
 temporaryTypes = [i.value for i in [MapType.GOLD, MapType.AGENT]]
 blockingTypes = [i.value for i in [MapType.WALL, MapType.AGENT, MapType.OUT_OF_MAP]]
@@ -28,6 +30,7 @@ class Agent:
         self.wallet: int = wallet
         self.team = team
 
+        
         self.attack_level: int = 1
         self.defence_level: int = 1
         self.wallet_Round_before: int = 1
@@ -469,13 +472,16 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
 
 
 def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or Action:
+    global every_gold_before
     target = find_fattest_enemy(view)
-
     if target is not None:
 
-        if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
+        # if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
+        #     return False
+        view.debug_log += f"(target.wallet*view.attack_ratio*view.atklvl)/((target.agentId {target.agentId} )): " + str(target.wallet) + "\n"
+        if ((target.wallet*view.attack_ratio*view.atklvl)/((view.atklvl+target.defence_level)) < 1) :
             return False
-
+        every_gold_before= brain.everyGold
         dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
 
         if dist <= view.ranged_attack_radius:
@@ -511,13 +517,14 @@ def estimate_lvl_def(view: GameState):
     for i in range(len(brain.everyAgent)):
         wallet_Round_before = brain.everyAgent[i].wallet_Round_before
         wallet = brain.everyAgent[i].wallet
-
+       
         if brain.everyAgent[i].team != self_team and \
                 wallet_Round_before > wallet:
 
             if brain.everyAgent[i].attacked_round != -1 and view.current_round - \
                     brain.everyAgent[i].attacked_round == 1 and brain.everyAgent[i].wallet != 0:
-
+                if brain.everyAgent[i].pos in [x.pos for x in every_gold_before]:
+                    wallet-=2
                 attack_efficiency = wallet_Round_before - wallet
                 A = wallet_Round_before * view.atklvl * brain.everyAgent[i].attacker_attack_ratio
                 def_lvl = (A / attack_efficiency) - view.atklvl
@@ -556,6 +563,8 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
 # 8 _ add wall in fog detection **** , DONE
 
 def getAction(view: GameState) -> Action:
+ 
+    view.debug_log += f" lvlvlvlvlvlvlvllv:{view.deflvl}\n"
     Dispose(view)
     Update(view)
     estimate_lvl_def(view)
