@@ -464,22 +464,36 @@ def percent(All: float or int, Some: float or int) -> float:
 
 def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
     if view.wallet == 0: return False
+    closest_treasury = find_closest_type(view.location, MapType.TREASURY)
+    if closest_treasury is None: return False
 
     remaining_steps = (view.rounds - view.current_round)
 
     map_boundaries_size = view.map.width + view.map.height
 
     if remaining_steps <= map_boundaries_size + triggerRange:
-        closest_treasury = find_closest_type(view.location, MapType.TREASURY)
         if remaining_steps <= last_closest_target_dist + triggerRange:
             return closest_treasury
 
     else:
         # if attacked by the opponent, how many coins will be lost?
         lost_coins = view.wallet * view.attack_ratio * (view.atklvl / (view.atklvl + view.deflvl) + 1)
-
         if lost_coins > view.map.gold_count:
-            closest_treasury = find_closest_type(view.location, MapType.TREASURY)
+            return closest_treasury
+
+    if view.wallet > view.map.gold_count / 4:
+        pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
+        if len(pathList) < 3:
+            return closest_treasury
+
+    if view.wallet > view.map.gold_count / 2:
+        pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
+        if len(pathList) < 5:
+            return closest_treasury
+
+    if view.wallet > view.map.gold_count / 7:
+        pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
+        if len(pathList) < 2:
             return closest_treasury
 
     return False

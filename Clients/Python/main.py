@@ -10,7 +10,7 @@ except Exception as e:
     Error += " MyClass import Error : "+str(e)+"\n"
 
 
-DEBUG = 0
+DEBUG = 1
 
 
 class Action(Enum):
