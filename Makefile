@@ -36,6 +36,9 @@ DEBUG_9:
 DEBUG_10:
 	python3 $(ANALYZOR) $(SERVER) 1000 $(CLIENT_DEBUG) $(CLIENT_10)
 
+DEBUG_11:
+	python3 $(ANALYZOR) $(SERVER) 100 $(CLIENT_DEBUG) $(CLIENT_11)
+
 
 ANALYZOR=./analyzer.py
 SERVER=./src/server.py
@@ -52,5 +55,6 @@ CLIENT_7=./AIBank/7_gallent_knight/main.py
 CLIENT_8=./AIBank/8_gladiator/main.py
 CLIENT_9=./AIBank/9_veteran/main.py
 CLIENT_10=./AIBank/10_hero/main.py
+CLIENT_11=./AIBank/11_lord/main.py
 
 
