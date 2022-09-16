@@ -463,12 +463,33 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
         if remaining_steps <= last_closest_target_dist + triggerRange:
             return closest_treasury
 
+
     else:
         # if attacked by the opponent, how many coins will be lost?
         lost_coins = view.wallet * view.attack_ratio * (view.atklvl / (view.atklvl + view.deflvl) + 1)
 
         if lost_coins > view.map.gold_count:
             closest_treasury = find_closest_type(view.location, MapType.TREASURY)
+            return closest_treasury
+
+  
+
+    if view.wallet > view.map.gold_count//4:
+        closest_treasury = find_closest_type(view.location, MapType.TREASURY)
+        pathList = getShortestPath(brain.everyTile, view.location,  closest_treasury)
+        if len(pathList)<3:
+            return closest_treasury
+
+    if view.wallet > view.map.gold_count/2:
+        closest_treasury = find_closest_type(view.location, MapType.TREASURY)
+        pathList = getShortestPath(brain.everyTile, view.location,  closest_treasury)
+        if len(pathList)<5:
+            return closest_treasury
+
+    if view.wallet > view.map.gold_count//7:
+        closest_treasury = find_closest_type(view.location, MapType.TREASURY)
+        pathList = getShortestPath(brain.everyTile, view.location,  closest_treasury)
+        if len(pathList)<2:
             return closest_treasury
 
     return False
@@ -481,8 +502,9 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
 
         # if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
         #     return False
-        if target.wallet < 3 or view.attack_ratio <= minimumAttackRatio:
+        if target.wallet < view.map.gold_count/8 or view.attack_ratio <= minimumAttackRatio:
             return False
+        
         every_gold_before= brain.everyGold
         dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
 
@@ -565,8 +587,6 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
 # 8 _ add wall in fog detection **** , DONE
 
 def getAction(view: GameState) -> Action:
- 
-    view.debug_log += f" lvlvlvlvlvlvlvllv:{view.deflvl}\n"
     Dispose(view)
     Update(view)
     estimate_lvl_def(view)
