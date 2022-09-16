@@ -490,7 +490,8 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
 
     if target is not None:
 
-        if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
+        if target.wallet < view.map.gold_count / 8 or view.attack_ratio <= minimumAttackRatio:
+        # if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
             return False
 
         dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
