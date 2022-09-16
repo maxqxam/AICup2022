@@ -551,6 +551,8 @@ def shouldUpgrade(view: GameState, activationThreshold: float) -> Action or bool
 # 6 _ collect golds when retrieving *
 # 7 _ add permanent MapType override **** , DONE
 # 8 _ add wall in fog detection **** , DONE
+# 9 - add ability to determine whether upgrades are needed or not , ( gold density of the map)
+# 10 - add wallet watcher -> estimate of upgrades and safe wallet ****
 
 def getAction(view: GameState) -> Action:
     Dispose(view)
