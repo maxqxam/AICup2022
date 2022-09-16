@@ -472,7 +472,7 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
     target = find_fattest_enemy(view)
 
     if target is not None:
-
+        
         if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
             return False
 
