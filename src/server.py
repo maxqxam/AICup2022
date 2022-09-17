@@ -19,7 +19,7 @@ if __name__ == '__main__':
                         help='Setting JSON file path')
     parser.add_argument('--log', default=Path(r'logs/{}'.format(int(time() * 1000))), type=Path,
                         help='Path to store logs')
-    parser.add_argument('--map', default=Path(r'maps/map1.json'), type=Path,
+    parser.add_argument('--map', default=Path(r'maps/map3.json'), type=Path,
                         help='Map for running the game')
     parser.add_argument('--cg', action='store_true',
                         help='Enable cgroups (only available in linux)')
