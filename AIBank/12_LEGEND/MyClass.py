@@ -481,6 +481,11 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
         if lost_coins > view.map.gold_count:
             return closest_treasury
 
+    if view.wallet > view.map.gold_count / 2:
+        pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
+        if len(pathList) > 3:
+            return 1
+
     if view.wallet > view.map.gold_count / 4:
         pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
         if len(pathList) < 3:
@@ -585,6 +590,8 @@ def getAction(view: GameState) -> Action:
 
     go_t = retrieveGold(view)
     if go_t:
+        if go_t==1:
+            return Action.UPGRADE_DEFENCE
         view.debug_log += "\nretrieveGold : " + str(go_t) + " | " + str(view.location) + "\n"
         goal = goTo(view, go_t)
 
