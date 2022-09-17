@@ -501,10 +501,16 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
             return closest_treasury
 
     pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
+    max_path_size = (view.map.width + view.map.height) / 2
+    path_percent = percent(max_path_size,len(pathList)-1)
+    gold_percent = percent(view.map.gold_count  , view.wallet) * 1.5
 
-    if len(pathList)!=0:
-        if view.wallet / len(pathList) >= (view.map.gold_count / ((view.map.width + view.map.height) / 2)) :
-            return closest_treasury
+    if len(pathList)!=0 and gold_percent > path_percent:
+        return closest_treasury
+
+    # if len(pathList)!=0:
+    #     if view.wallet / len(pathList) * 2 >= (view.map.gold_count / ((view.map.width + view.map.height) / 2)) :
+    #         return closest_treasury
 
 
 
