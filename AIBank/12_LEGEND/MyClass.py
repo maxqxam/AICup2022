@@ -585,8 +585,6 @@ def getAction(view: GameState) -> Action:
 
     go_t = retrieveGold(view)
     if go_t:
-        if go_t==1:
-            return Action.UPGRADE_DEFENCE
         view.debug_log += "\nretrieveGold : " + str(go_t) + " | " + str(view.location) + "\n"
         goal = goTo(view, go_t)
 
