@@ -47,8 +47,8 @@ class Brain:
     enemy_total_loss = 0
     enemy_total_wallets = 0
     last_target_index = 0
-    max_defence_upgrade = 12
-    max_attack_upgrade = 12
+    max_defence_upgrade = 7
+    max_attack_upgrade = 6
 
     def __init__(self):
         self.everyAgent = None
@@ -491,6 +491,7 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
     closest_treasury = find_closest_type(view.location, MapType.TREASURY)
     if closest_treasury is None: return False
 
+
     remaining_steps = (view.rounds - view.current_round)
 
     map_boundaries_size = view.map.width + view.map.height
@@ -499,26 +500,13 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
         if remaining_steps <= last_closest_target_dist + triggerRange:
             return closest_treasury
 
-    else:
-        # if attacked by the opponent, how many coins will be lost?
-        lost_coins = view.wallet * view.attack_ratio * (view.atklvl / (view.atklvl + view.deflvl) + 1)
-        if lost_coins > view.map.gold_count:
+    pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
+
+    if len(pathList)!=0:
+        if view.wallet / len(pathList) >= (view.map.gold_count / ((view.map.width + view.map.height) / 2)) :
             return closest_treasury
 
-    if view.wallet > view.map.gold_count / 4:
-        pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
-        if len(pathList) < 3:
-            return closest_treasury
 
-    if view.wallet > view.map.gold_count / 2:
-        pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
-        if len(pathList) < 5:
-            return closest_treasury
-
-    if view.wallet > view.map.gold_count / 7:
-        pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
-        if len(pathList) < 2:
-            return closest_treasury
 
     return False
 
@@ -562,18 +550,16 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
 def shouldUpgradeDefence(view: GameState, activationThreshold: float) -> bool:
     if view.deflvl >= Brain.max_defence_upgrade: return False
 
-    if (percent(view.rounds, view.current_round) < activationThreshold or view.safe_wallet > Brain.enemy_safe_wallet
-        * 1.35) \
+    if (percent(view.rounds, view.current_round) < activationThreshold ) \
             and view.wallet >= view.def_upgrade_cost:
         return True
     return False
 
 
 def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
-    if view.deflvl >= Brain.max_attack_upgrade: return False
+    if view.atklvl >= Brain.max_attack_upgrade: return False
 
-    if (percent(view.rounds, view.current_round) < activationThreshold or view.safe_wallet > Brain.enemy_safe_wallet
-        * 1.35) \
+    if (percent(view.rounds, view.current_round) < activationThreshold) \
             and view.wallet >= view.atk_upgrade_cost:
         return True
     return False
