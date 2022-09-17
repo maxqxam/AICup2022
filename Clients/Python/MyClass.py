@@ -27,6 +27,7 @@ class Agent:
         self.agentId: int = agentId
         self.wallet: int = wallet
         self.last_wallet: int = wallet
+        self.was_attacked: bool = False
         self.team = team
 
     def __str__(self):
@@ -44,6 +45,8 @@ class Brain:
     enemy_safe_wallet = 0
     enemy_total_income = 0
     enemy_total_loss = 0
+    last_target_index = 0
+
 
     def __init__(self):
         self.everyAgent = None
@@ -61,6 +64,7 @@ class Brain:
             if i > 1: team = 2
 
             self.everyAgent[i] = Agent((0, 0), i, 0, team)
+
         self.everyFog = []
         self.everyGold = []
         self.everyTile = []
@@ -76,6 +80,7 @@ class Brain:
 
         isInTreasury: bool = False
         for i in self.everyAgent:
+
             self.everyAgent[i].isVisible = False
             self.everyAgent[i].last_wallet = self.everyAgent[i].wallet
             self.everyAgent[i].wallet = view.wallets[i]
@@ -86,8 +91,9 @@ class Brain:
                 if tuple(self.everyTile[i].pos) == tuple(c.coordinates):
                     if c.type.value in permanentTypes and not self.everyTile[i].isOverRidden:
                         if self.everyTile[i].Type != MapType.UNKNOWN.value \
-                                and self.everyTile[
-                            i].Type != c.type.value:  # This ensures treasuries behind fogs are found
+                                and self.everyTile[i].Type != c.type.value:
+                            # This ensures treasuries behind fogs are found
+
                             view.debug_log += "\n Found new MapType ! , previous type : " + \
                                               str(self.everyTile[i].Type) + " , new type : " + str(c.type.value) + "\n"
                             self.everyTile[i].isOverRidden = True
@@ -442,6 +448,7 @@ def Dispose(view: GameState) -> None:
     if brain.everyGold is not None:
         view.debug_log += "\neveryGold : " + str([str(i) for i in brain.everyGold]) + "\n"
 
+
     brain.flushTiles()
 
 
@@ -507,10 +514,13 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
     return False
 
 
+
+
 def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or Action:
     target = find_fattest_enemy(view)
-
     if target is not None:
+
+        Brain.last_target_index = target.agentId
 
         if target.wallet < view.map.gold_count / 8 or view.attack_ratio <= minimumAttackRatio:
             # if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
@@ -566,8 +576,9 @@ def shouldUpgrade(view: GameState, activationThreshold: float) -> Action or bool
     return False
 
 
-
 def walletWatcher(view: GameState):
+
+
 
     for c in brain.everyAgent:
         i = brain.everyAgent[c]
@@ -577,15 +588,26 @@ def walletWatcher(view: GameState):
                 Brain.enemy_total_loss += abs(i.wallet - i.last_wallet)
             elif i.wallet > i.last_wallet:
                 Brain.enemy_total_income += abs(i.wallet - i.last_wallet)
-            if i.wallet == 0:
-                if i.last_wallet in [view.atk_upgrade_cost,view.def_upgrade_cost]:
-                    Brain.enemy_safe_wallet += i.last_wallet * (1 - percent(view.rounds,view.current_round) / 100)
+
+            if i.wallet < i.last_wallet and i.was_attacked:
+                pass
+
+            elif i.wallet == 0:
+                if i.last_wallet in [view.atk_upgrade_cost, view.def_upgrade_cost]:
+                    if percent(view.rounds,view.current_round) < 25: continue
+                    elif percent(view.rounds,view.current_round) < 35:
+                        Brain.enemy_safe_wallet += i.last_wallet * (1 - percent(view.rounds, view.current_round) / 35)
+                    else:
+                        Brain.enemy_safe_wallet += i.last_wallet
+
+
                 else:
                     Brain.enemy_safe_wallet += i.last_wallet
 
-    view.debug_log += "\nenemy , safe_wallet : "+str(Brain.enemy_safe_wallet)+ \
+
+    view.debug_log += "\nenemy , safe_wallet : " + str(Brain.enemy_safe_wallet) + \
                       "\nenemy , total_income : " + str(Brain.enemy_total_income) + \
-                      "\nenemy , total_loss : " + str(Brain.enemy_total_loss) +"\n"
+                      "\nenemy , total_loss : " + str(Brain.enemy_total_loss) + "\n"
 
 
 # 1 _ add linear attack block detection ****
@@ -625,6 +647,14 @@ def getAction(view: GameState) -> Action:
     attack = shouldAttack(view)
     if attack and not go_t:
         return attack
+
+    for c in brain.everyAgent:
+        i = brain.everyAgent[c]
+        if attack and not go_t and i.agentId == Brain.last_target_index:
+            brain.everyAgent[c].was_attacked = True
+        else:
+            brain.everyAgent[c].was_attacked = False
+
 
     view.debug_log += "" + brain.getVisiblePlacesString() + "\n"
 
