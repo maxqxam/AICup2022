@@ -26,17 +26,24 @@ class Agent:
         self.pos: tuple[int, int] = pos
         self.agentId: int = agentId
         self.wallet: int = wallet
+        self.last_wallet: int = wallet
         self.team = team
 
     def __str__(self):
         return "Agent : < pos : " + str(self.pos) + ", id : " + str(self.agentId) + ", wallet : " + \
                str(self.wallet) + "," + str(
             self.isVisible) + \
-               ", team : " + str(self.team) + " >"
+               ", team : " + str(self.team) + \
+               ", last_wallet : " + str(self.last_wallet) + ", wallet : " + str(self.wallet) + \
+               " >"
 
 
 class Brain:
     firstIteration: bool = True
+    team = 1
+    enemy_safe_wallet = 0
+    enemy_total_income = 0
+    enemy_total_loss = 0
 
     def __init__(self):
         self.everyAgent = None
@@ -47,6 +54,7 @@ class Brain:
         self.everyTileAsPos = None
 
     def initTiles(self, mapDimensions: tuple[int, int], view: GameState) -> None:
+        if view.agent_id > 1: Brain.team = 2
         self.everyAgent = {}
         for i in range(0, 4):
             team = 1
@@ -69,6 +77,8 @@ class Brain:
         isInTreasury: bool = False
         for i in self.everyAgent:
             self.everyAgent[i].isVisible = False
+            self.everyAgent[i].last_wallet = self.everyAgent[i].wallet
+            self.everyAgent[i].wallet = view.wallets[i]
 
         for i in range(0, len(self.everyTile)):
             for c in visibleTiles:
@@ -404,7 +414,7 @@ def Update(view: GameState) -> None:
 
     if ally_visible:
         # tail.clear()
-        for i in range(0,TAIL_MAX_SIZE):
+        for i in range(0, TAIL_MAX_SIZE):
             tail.append(tuple(brain.everyAgent[ally_id].pos))
     else:
         tail.append(tuple(view.location))
@@ -418,8 +428,6 @@ def Update(view: GameState) -> None:
             tail.pop(0)
 
     ally_pre_visible = ally_visible
-
-
 
     if brain.last_tested_fog is not None:
         view.debug_log += "\n" + "Last goal was a fog , result : " + str(view.last_action) + "\n"
@@ -505,7 +513,7 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
     if target is not None:
 
         if target.wallet < view.map.gold_count / 8 or view.attack_ratio <= minimumAttackRatio:
-        # if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
+            # if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
             return False
 
         dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
@@ -558,6 +566,28 @@ def shouldUpgrade(view: GameState, activationThreshold: float) -> Action or bool
     return False
 
 
+
+def walletWatcher(view: GameState):
+
+    for c in brain.everyAgent:
+        i = brain.everyAgent[c]
+
+        if i.team != Brain.team:
+            if i.wallet < i.last_wallet:
+                Brain.enemy_total_loss += abs(i.wallet - i.last_wallet)
+            elif i.wallet > i.last_wallet:
+                Brain.enemy_total_income += abs(i.wallet - i.last_wallet)
+            if i.wallet == 0:
+                if i.last_wallet in [view.atk_upgrade_cost,view.def_upgrade_cost]:
+                    Brain.enemy_safe_wallet += i.last_wallet * (1 - percent(view.rounds,view.current_round) / 100)
+                else:
+                    Brain.enemy_safe_wallet += i.last_wallet
+
+    view.debug_log += "\nenemy , safe_wallet : "+str(Brain.enemy_safe_wallet)+ \
+                      "\nenemy , total_income : " + str(Brain.enemy_total_income) + \
+                      "\nenemy , total_loss : " + str(Brain.enemy_total_loss) +"\n"
+
+
 # 1 _ add linear attack block detection ****
 # 2 _ find the proper time to attack ****
 # 3 _ find the right balance between upgrades ** , DONE - RESULTS ARE FUCKING FANTASTIC!
@@ -572,6 +602,7 @@ def shouldUpgrade(view: GameState, activationThreshold: float) -> Action or bool
 def getAction(view: GameState) -> Action:
     Dispose(view)
     Update(view)
+    walletWatcher(view)
 
     goal = Patrol(view)
 
