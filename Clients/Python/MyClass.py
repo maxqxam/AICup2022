@@ -1,7 +1,9 @@
+
 import random
 from main import GameState
 from main import Action
 from main import MapType
+import math
 
 permanentTypes = [i.value for i in [MapType.WALL, MapType.EMPTY, MapType.TREASURY, MapType.FOG]]
 temporaryTypes = [i.value for i in [MapType.GOLD, MapType.AGENT]]
@@ -466,7 +468,7 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
     if view.wallet == 0: return False
     closest_treasury = find_closest_type(view.location, MapType.TREASURY)
     if closest_treasury is None: return False
-
+   
     remaining_steps = (view.rounds - view.current_round)
 
     map_boundaries_size = view.map.width + view.map.height
@@ -481,25 +483,23 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
         if lost_coins > view.map.gold_count:
             return closest_treasury
 
-    if view.wallet > view.map.gold_count / 2:
-        pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
-        if len(pathList)  >4:
-            return 1
+   
 
     if view.wallet > view.map.gold_count / 4:
-        pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
-        if len(pathList) < 3:
-            return closest_treasury
-
+        pathList = a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),4)
+        if len(pathList) < 5 and len(pathList)>1:
+            return pathList[1]
     if view.wallet > view.map.gold_count / 2:
-        pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
-        if len(pathList) < 5:
-            return closest_treasury
+        pathList = a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),1)
+        if len(pathList) < 7 and len(pathList)>1:
+            return pathList[1]
+        
 
     if view.wallet > view.map.gold_count / 7:
-        pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
-        if len(pathList) < 2:
-            return closest_treasury
+        
+        pathList = a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),5)
+        if len(pathList) < 4 and len(pathList)>1:
+            return pathList[1]
 
     return False
 
@@ -535,7 +535,99 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
         target.attacked_round = -1
 
     return False
+def a_star_algorithm(self, start_node, stop_node,Collect_gold=1):
+    open_list = set([start_node])
+    closed_list = set([])
+    g = {}
+    g[start_node] = 0
+    parents = {}
+    parents[start_node] = start_node
 
+    while len(open_list) > 0:
+        n = None
+        for v in open_list:
+            if n == None or g[v] + h(v, stop_node, self) < g[n] + h(n, stop_node, self):
+                n = v
+
+        if n == None:
+            return None
+        if n == stop_node:
+            reconst_path = []
+
+            while parents[n] != n:
+                reconst_path.append(n)
+                n = parents[n]
+
+            reconst_path.append(start_node)
+
+            reconst_path.reverse()
+            return reconst_path
+
+        for (m, weight) in Connected_nodes2dictionary(self, n,Collect_gold):
+            if m not in open_list and m not in closed_list:
+                open_list.add(m)
+                parents[m] = n
+                g[m] = g[n] + weight
+
+            else:
+                if g[m] > g[n] + weight:
+                    g[m] = g[n] + weight
+                    parents[m] = n
+
+                    if m in closed_list:
+                        closed_list.remove(m)
+                        open_list.add(m)
+
+        open_list.remove(n)
+        closed_list.add(n)
+    return None
+
+
+def h(n, stop_node, self):
+    a = convert_strlist_to_int(n)
+    b = convert_strlist_to_int(stop_node)
+    # a=(x-x1)**2 +(y-y1)**2
+    # math.sqrt(a)
+    # self.debug_log += f'nnnnnn {str(math.sqrt(a))}\n'
+    return math.sqrt(math.dist(a, b))
+
+def get_connected_nodes(self:GameState,coordinates):
+    map_gride=self.map.grid
+    i,j=coordinates
+    # self.debug_log += f'nnnnnn {str(math.sqrt(a))}\n'
+    tupel_coordinates=[(i,j+1),(i,j-1),(i-1,j),(i+1,j)]
+    
+    for i in brain.everyTile:
+        if i.pos in tupel_coordinates and (i.Type in blockingTypes or i.tempType  in blockingTypes) :
+           tupel_coordinates.remove(i.pos)
+        # if i.coordinates in list_coordinates and i.type==MapType.AGENT.value:
+        #     # if math.sqrt(math.dist(a, b)) <3:
+        #     list_coordinates.remove(i.coordinates)
+    list_coordinates=[list(i) for i in tupel_coordinates ]
+    return  list_coordinates
+
+def Connected_nodes2dictionary(self, coordinates,Collect_gold):
+    c, w = convert_strlist_to_int(coordinates)
+    loc_gold=[i.coordinates for i in self.map.grid if i.type.value==MapType.GOLD.value]
+    poslist = get_connected_nodes(self, (c, w))
+    res = []
+    for element in (poslist):
+        if element in loc_gold:
+            res.append((f'{element}', 1/Collect_gold))
+        else:
+            res.append((f'{element}', 1))
+
+    dic = {
+        f'{coordinates}': res
+    }
+    return dic[coordinates]
+def convert_strlist_to_int(str):  # '[3,4]'--->(3,4)
+    a = str.split(',')
+    b = a[0]
+    c = b.split('[')
+    d = a[1]
+    e = d.split(']')
+    return int(c[1]), int(e[0])
 
 def shouldUpgradeDefence(view: GameState, activationThreshold: float) -> bool:
     if percent(view.rounds, view.current_round) < activationThreshold \
@@ -575,6 +667,8 @@ def shouldUpgrade(view: GameState, activationThreshold: float) -> Action or bool
 # 10 - add wallet watcher -> estimate of upgrades and safe wallet ****
 
 def getAction(view: GameState) -> Action:
+   
+   
     Dispose(view)
     Update(view)
 
@@ -590,10 +684,14 @@ def getAction(view: GameState) -> Action:
 
     go_t = retrieveGold(view)
     if go_t:
-        if go_t==1:
-            return Action.UPGRADE_DEFENCE
-        view.debug_log += "\nretrieveGold : " + str(go_t) + " | " + str(view.location) + "\n"
-        goal = goTo(view, go_t)
+        
+        view.debug_log += "\nretriev___________________________________________________________________________eGold : " + str(go_t) + "\n"
+        # goal = goTo(view, go_t)
+        if type(go_t)==str:
+            goal=convert_strlist_to_int(go_t)
+            view.debug_log += "\nretrieveGold goalgoalg___________________oalgoalgoal: " + str(goal)  + "\n"
+        else:
+            goal=goTo(view, go_t)
 
     for i in brain.everyAgent:
         view.debug_log += str(brain.everyAgent[i]) + "\n"
@@ -612,5 +710,6 @@ def getAction(view: GameState) -> Action:
         brain.last_tested_fog = goal
     else:
         brain.last_tested_fog = None
-
+    a=[i for i in brain.everyTile  if i.Type not in blockingTypes and i.tempType not in blockingTypes]
+    view.debug_log += f'map_gridemap_gridemap_gridemap_gride: {str(a)}\n'
     return getStepTowards(view.location, goal)
