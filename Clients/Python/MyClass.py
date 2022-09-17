@@ -45,8 +45,10 @@ class Brain:
     enemy_safe_wallet = 0
     enemy_total_income = 0
     enemy_total_loss = 0
+    enemy_total_wallets = 0
     last_target_index = 0
-
+    max_defence_upgrade = 12
+    max_attack_upgrade = 12
 
     def __init__(self):
         self.everyAgent = None
@@ -56,7 +58,11 @@ class Brain:
         self.last_tested_fog = None
         self.everyTileAsPos = None
 
+
+
     def initTiles(self, mapDimensions: tuple[int, int], view: GameState) -> None:
+
+
         if view.agent_id > 1: Brain.team = 2
         self.everyAgent = {}
         for i in range(0, 4):
@@ -80,10 +86,13 @@ class Brain:
 
         isInTreasury: bool = False
         for i in self.everyAgent:
-
+            Brain.enemy_total_wallets = 0
             self.everyAgent[i].isVisible = False
             self.everyAgent[i].last_wallet = self.everyAgent[i].wallet
             self.everyAgent[i].wallet = view.wallets[i]
+            if self.everyAgent[i].team != Brain.team:
+                Brain.enemy_total_wallets += self.everyAgent[i].wallet
+
 
         for i in range(0, len(self.everyTile)):
             for c in visibleTiles:
@@ -551,14 +560,20 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
 
 
 def shouldUpgradeDefence(view: GameState, activationThreshold: float) -> bool:
-    if percent(view.rounds, view.current_round) < activationThreshold \
+    if view.deflvl >= Brain.max_defence_upgrade: return False
+
+    if (percent(view.rounds, view.current_round) < activationThreshold or view.safe_wallet > Brain.enemy_safe_wallet
+        * 1.35) \
             and view.wallet >= view.def_upgrade_cost:
         return True
     return False
 
 
 def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
-    if percent(view.rounds, view.current_round) < activationThreshold \
+    if view.deflvl >= Brain.max_attack_upgrade: return False
+
+    if (percent(view.rounds, view.current_round) < activationThreshold or view.safe_wallet > Brain.enemy_safe_wallet
+        * 1.35) \
             and view.wallet >= view.atk_upgrade_cost:
         return True
     return False
@@ -566,12 +581,16 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
 
 #
 def shouldUpgrade(view: GameState, activationThreshold: float) -> Action or bool:
-    if view.deflvl > view.atklvl:
+
+    if percent(view.rounds,view.current_round) > 50 : return False
+
+    if view.deflvl > view.atklvl and view.atklvl < Brain.max_attack_upgrade:
         x = shouldUpgradeAttack(view, activationThreshold)
         if x: return Action.UPGRADE_ATTACK
 
-    x = shouldUpgradeDefence(view, activationThreshold)
-    if x: return Action.UPGRADE_DEFENCE
+    if view.deflvl < Brain.max_defence_upgrade:
+        x = shouldUpgradeDefence(view, activationThreshold)
+        if x: return Action.UPGRADE_DEFENCE
 
     return False
 
