@@ -1,9 +1,7 @@
-
 import random
 from main import GameState
 from main import Action
 from main import MapType
-import Astar
 
 permanentTypes = [i.value for i in [MapType.WALL, MapType.EMPTY, MapType.TREASURY, MapType.FOG]]
 temporaryTypes = [i.value for i in [MapType.GOLD, MapType.AGENT]]
@@ -28,17 +26,29 @@ class Agent:
         self.pos: tuple[int, int] = pos
         self.agentId: int = agentId
         self.wallet: int = wallet
+        self.last_wallet: int = wallet
+        self.was_attacked: bool = False
         self.team = team
 
     def __str__(self):
         return "Agent : < pos : " + str(self.pos) + ", id : " + str(self.agentId) + ", wallet : " + \
                str(self.wallet) + "," + str(
             self.isVisible) + \
-               ", team : " + str(self.team) + " >"
+               ", team : " + str(self.team) + \
+               ", last_wallet : " + str(self.last_wallet) + ", wallet : " + str(self.wallet) + \
+               " >"
 
 
 class Brain:
     firstIteration: bool = True
+    team = 1
+    enemy_safe_wallet = 0
+    enemy_total_income = 0
+    enemy_total_loss = 0
+    enemy_total_wallets = 0
+    last_target_index = 0
+    max_defence_upgrade = 7
+    max_attack_upgrade = 6
 
     def __init__(self):
         self.everyAgent = None
@@ -48,13 +58,19 @@ class Brain:
         self.last_tested_fog = None
         self.everyTileAsPos = None
 
+
+
     def initTiles(self, mapDimensions: tuple[int, int], view: GameState) -> None:
+
+
+        if view.agent_id > 1: Brain.team = 2
         self.everyAgent = {}
         for i in range(0, 4):
             team = 1
             if i > 1: team = 2
 
             self.everyAgent[i] = Agent((0, 0), i, 0, team)
+
         self.everyFog = []
         self.everyGold = []
         self.everyTile = []
@@ -70,7 +86,13 @@ class Brain:
 
         isInTreasury: bool = False
         for i in self.everyAgent:
+            Brain.enemy_total_wallets = 0
             self.everyAgent[i].isVisible = False
+            self.everyAgent[i].last_wallet = self.everyAgent[i].wallet
+            self.everyAgent[i].wallet = view.wallets[i]
+            if self.everyAgent[i].team != Brain.team:
+                Brain.enemy_total_wallets += self.everyAgent[i].wallet
+
 
         for i in range(0, len(self.everyTile)):
             for c in visibleTiles:
@@ -78,8 +100,9 @@ class Brain:
                 if tuple(self.everyTile[i].pos) == tuple(c.coordinates):
                     if c.type.value in permanentTypes and not self.everyTile[i].isOverRidden:
                         if self.everyTile[i].Type != MapType.UNKNOWN.value \
-                                and self.everyTile[
-                            i].Type != c.type.value:  # This ensures treasuries behind fogs are found
+                                and self.everyTile[i].Type != c.type.value:
+                            # This ensures treasuries behind fogs are found
+
                             view.debug_log += "\n Found new MapType ! , previous type : " + \
                                               str(self.everyTile[i].Type) + " , new type : " + str(c.type.value) + "\n"
                             self.everyTile[i].isOverRidden = True
@@ -406,7 +429,7 @@ def Update(view: GameState) -> None:
 
     if ally_visible:
         # tail.clear()
-        for i in range(0,TAIL_MAX_SIZE):
+        for i in range(0, TAIL_MAX_SIZE):
             tail.append(tuple(brain.everyAgent[ally_id].pos))
     else:
         tail.append(tuple(view.location))
@@ -421,8 +444,6 @@ def Update(view: GameState) -> None:
 
     ally_pre_visible = ally_visible
 
-
-
     if brain.last_tested_fog is not None:
         view.debug_log += "\n" + "Last goal was a fog , result : " + str(view.last_action) + "\n"
         if view.last_action == -1:
@@ -435,6 +456,7 @@ def Update(view: GameState) -> None:
 def Dispose(view: GameState) -> None:
     if brain.everyGold is not None:
         view.debug_log += "\neveryGold : " + str([str(i) for i in brain.everyGold]) + "\n"
+
 
     brain.flushTiles()
 
@@ -468,7 +490,8 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
     if view.wallet == 0: return False
     closest_treasury = find_closest_type(view.location, MapType.TREASURY)
     if closest_treasury is None: return False
-   
+
+
     remaining_steps = (view.rounds - view.current_round)
 
     map_boundaries_size = view.map.width + view.map.height
@@ -477,41 +500,33 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
         if remaining_steps <= last_closest_target_dist + triggerRange:
             return closest_treasury
 
-    else:
-        # if attacked by the opponent, how many coins will be lost?
-        lost_coins = view.wallet * view.attack_ratio * (view.atklvl / (view.atklvl + view.deflvl) + 1)
-        if lost_coins > view.map.gold_count:
-            return closest_treasury
+    pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
+    max_path_size = (view.map.width + view.map.height) / 2
+    path_percent = percent(max_path_size,len(pathList)-1)
+    gold_percent = percent(view.map.gold_count  , view.wallet) * 1.5
 
-   
+    if len(pathList)!=0 and gold_percent > path_percent:
+        return closest_treasury
 
-    if view.wallet > view.map.gold_count / 4:
-        pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),4)
-        if len(pathList) < 5 and len(pathList)>1:
-            return pathList[1]
-            
-    if view.wallet > view.map.gold_count / 2:
-        pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),1)
-        if len(pathList) < 7 and len(pathList)>1:
-            return pathList[1]
-        
+    # if len(pathList)!=0:
+    #     if view.wallet / len(pathList) * 2 >= (view.map.gold_count / ((view.map.width + view.map.height) / 2)) :
+    #         return closest_treasury
 
-    if view.wallet > view.map.gold_count / 7:
-        
-        pathList =Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),5)
-        if len(pathList) < 4 and len(pathList)>1:
-            return pathList[1]
+
 
     return False
 
 
+
+
 def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or Action:
     target = find_fattest_enemy(view)
-
     if target is not None:
 
+        Brain.last_target_index = target.agentId
+
         if target.wallet < view.map.gold_count / 8 or view.attack_ratio <= minimumAttackRatio:
-        # if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
+            # if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
             return False
 
         dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
@@ -539,14 +554,18 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
 
 
 def shouldUpgradeDefence(view: GameState, activationThreshold: float) -> bool:
-    if percent(view.rounds, view.current_round) < activationThreshold \
+    if view.deflvl >= Brain.max_defence_upgrade: return False
+
+    if (percent(view.rounds, view.current_round) < activationThreshold ) \
             and view.wallet >= view.def_upgrade_cost:
         return True
     return False
 
 
 def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
-    if percent(view.rounds, view.current_round) < activationThreshold \
+    if view.atklvl >= Brain.max_attack_upgrade: return False
+
+    if (percent(view.rounds, view.current_round) < activationThreshold) \
             and view.wallet >= view.atk_upgrade_cost:
         return True
     return False
@@ -554,14 +573,52 @@ def shouldUpgradeAttack(view: GameState, activationThreshold: float) -> bool:
 
 #
 def shouldUpgrade(view: GameState, activationThreshold: float) -> Action or bool:
-    if view.deflvl > view.atklvl:
+
+    if percent(view.rounds,view.current_round) > 50 : return False
+
+    if view.deflvl > view.atklvl and view.atklvl < Brain.max_attack_upgrade:
         x = shouldUpgradeAttack(view, activationThreshold)
         if x: return Action.UPGRADE_ATTACK
 
-    x = shouldUpgradeDefence(view, activationThreshold)
-    if x: return Action.UPGRADE_DEFENCE
+    if view.deflvl < Brain.max_defence_upgrade:
+        x = shouldUpgradeDefence(view, activationThreshold)
+        if x: return Action.UPGRADE_DEFENCE
 
     return False
+
+
+def walletWatcher(view: GameState):
+
+
+
+    for c in brain.everyAgent:
+        i = brain.everyAgent[c]
+
+        if i.team != Brain.team:
+            if i.wallet < i.last_wallet:
+                Brain.enemy_total_loss += abs(i.wallet - i.last_wallet)
+            elif i.wallet > i.last_wallet:
+                Brain.enemy_total_income += abs(i.wallet - i.last_wallet)
+
+            if i.wallet < i.last_wallet and i.was_attacked:
+                pass
+
+            elif i.wallet == 0:
+                if i.last_wallet in [view.atk_upgrade_cost, view.def_upgrade_cost]:
+                    if percent(view.rounds,view.current_round) < 25: continue
+                    elif percent(view.rounds,view.current_round) < 35:
+                        Brain.enemy_safe_wallet += i.last_wallet * (1 - percent(view.rounds, view.current_round) / 35)
+                    else:
+                        Brain.enemy_safe_wallet += i.last_wallet
+
+
+                else:
+                    Brain.enemy_safe_wallet += i.last_wallet
+
+
+    view.debug_log += "\nenemy , safe_wallet : " + str(Brain.enemy_safe_wallet) + \
+                      "\nenemy , total_income : " + str(Brain.enemy_total_income) + \
+                      "\nenemy , total_loss : " + str(Brain.enemy_total_loss) + "\n"
 
 
 # 1 _ add linear attack block detection ****
@@ -576,10 +633,9 @@ def shouldUpgrade(view: GameState, activationThreshold: float) -> Action or bool
 # 10 - add wallet watcher -> estimate of upgrades and safe wallet ****
 
 def getAction(view: GameState) -> Action:
-   
-   
     Dispose(view)
     Update(view)
+    walletWatcher(view)
 
     goal = Patrol(view)
 
@@ -593,11 +649,8 @@ def getAction(view: GameState) -> Action:
 
     go_t = retrieveGold(view)
     if go_t:
-        
-        if type(go_t)==str:
-            goal=Astar.convert_strlist_to_int(go_t)
-        else:
-            goal=goTo(view, go_t)
+        view.debug_log += "\nretrieveGold : " + str(go_t) + " | " + str(view.location) + "\n"
+        goal = goTo(view, go_t)
 
     for i in brain.everyAgent:
         view.debug_log += str(brain.everyAgent[i]) + "\n"
@@ -605,6 +658,14 @@ def getAction(view: GameState) -> Action:
     attack = shouldAttack(view)
     if attack and not go_t:
         return attack
+
+    for c in brain.everyAgent:
+        i = brain.everyAgent[c]
+        if attack and not go_t and i.agentId == Brain.last_target_index:
+            brain.everyAgent[c].was_attacked = True
+        else:
+            brain.everyAgent[c].was_attacked = False
+
 
     view.debug_log += "" + brain.getVisiblePlacesString() + "\n"
 
@@ -616,6 +677,5 @@ def getAction(view: GameState) -> Action:
         brain.last_tested_fog = goal
     else:
         brain.last_tested_fog = None
-    a=[i for i in brain.everyTile  if i.Type not in blockingTypes and i.tempType not in blockingTypes]
-    view.debug_log += f'map_gridemap_gridemap_gridemap_gride: {str(a)}\n'
+
     return getStepTowards(view.location, goal)
