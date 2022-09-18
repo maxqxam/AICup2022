@@ -4,7 +4,7 @@ from main import MapType
 import MyClass
 
 
-def a_star_algorithm(self, start_node, stop_node,Collect_gold=1):
+def a_star_algorithm(self:GameState, start_node:str('[int,int]'), stop_node:str('[int,int]'),Collect_gold:int or float=1):
     open_list = set([start_node])
     closed_list = set([])
     g = {}
@@ -55,27 +55,24 @@ def a_star_algorithm(self, start_node, stop_node,Collect_gold=1):
 def h(n, stop_node, self):
     a = convert_strlist_to_int(n)
     b = convert_strlist_to_int(stop_node)
-    # a=(x-x1)**2 +(y-y1)**2
-    # math.sqrt(a)
-    # self.debug_log += f'nnnnnn {str(math.sqrt(a))}\n'
+   
     return math.sqrt(math.dist(a, b))
 
-def get_connected_nodes(self:GameState,coordinates):
+def get_connected_nodes(self:GameState,coordinates:tuple([int,int])):
     map_gride=self.map.grid
     i,j=coordinates
-    # self.debug_log += f'nnnnnn {str(math.sqrt(a))}\n'
     tupel_coordinates=[(i,j+1),(i,j-1),(i-1,j),(i+1,j)]
     
     for i in MyClass.brain.everyTile:
         if i.pos in tupel_coordinates and (i.Type in  MyClass.blockingTypes or i.tempType  in MyClass.blockingTypes) :
            tupel_coordinates.remove(i.pos)
-        # if i.coordinates in list_coordinates and i.type==MapType.AGENT.value:
-        #     # if math.sqrt(math.dist(a, b)) <3:
-        #     list_coordinates.remove(i.coordinates)
+    
+
     list_coordinates=[list(i) for i in tupel_coordinates ]
     return  list_coordinates
 
-def Connected_nodes2dictionary(self, coordinates,Collect_gold):
+
+def Connected_nodes2dictionary(self:GameState, coordinates:tuple,Collect_gold:int):
     c, w = convert_strlist_to_int(coordinates)
     loc_gold=[i.coordinates for i in self.map.grid if i.type.value==MapType.GOLD.value]
     poslist = get_connected_nodes(self, (c, w))
@@ -90,6 +87,8 @@ def Connected_nodes2dictionary(self, coordinates,Collect_gold):
         f'{coordinates}': res
     }
     return dic[coordinates]
+
+
 def convert_strlist_to_int(str):  # '[3,4]'--->(3,4)
     a = str.split(',')
     b = a[0]
