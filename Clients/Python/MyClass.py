@@ -484,7 +484,7 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
             return closest_treasury
 
    
-    pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),3)
+    pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),10)
     max_path_size = (view.map.width + view.map.height) / 2
     path_percent = percent(max_path_size,len(pathList)-1)
     gold_percent = percent(view.map.gold_count  , view.wallet) * 1
@@ -492,45 +492,6 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
     if len(pathList)!=0 and gold_percent > path_percent:
        return pathList[1]
 
-
-
-    pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),6)
-    max_path_size = (view.map.width + view.map.height) / 2
-    path_percent = percent(max_path_size,len(pathList)-1)
-    gold_percent = percent(view.map.gold_count  , view.wallet) * 1.4
-
-    if len(pathList)!=0 and gold_percent > path_percent:
-        return pathList[1]
-
-
-
-    # pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),7)
-    # max_path_size = (view.map.width + view.map.height) / 2
-    # path_percent = percent(max_path_size,len(pathList)-1)
-    # gold_percent = percent(view.map.gold_count  , view.wallet) * 1.5
-
-    # if len(pathList)!=0 and gold_percent > path_percent:
-    #    return pathList[1]
-
-
-
-    # pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),1)
-    # if view.wallet > view.map.gold_count / 4:
-    #     if len(pathList) < 5 and len(pathList)>1:
-    #         pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),4)
-    #         return pathList[1]
-            
-    # if view.wallet > view.map.gold_count / 2:
-    #     pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),1)
-    #     if len(pathList) < 7 and len(pathList)>1:
-    #         return pathList[1]
-        
-
-    # if view.wallet > view.map.gold_count / 7:
-        
-    #     if len(pathList) < 4 and len(pathList)>1:
-    #         pathList =Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),5)
-    #         return pathList[1]
 
     return False
 
@@ -541,7 +502,6 @@ def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or A
     if target is not None:
 
         if target.wallet < view.map.gold_count / 8 or view.attack_ratio <= minimumAttackRatio:
-        # if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
             return False
 
         dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
@@ -628,6 +588,8 @@ def getAction(view: GameState) -> Action:
             goal=Astar.convert_strlist_to_int(go_t)
         else:
             goal=goTo(view, go_t)
+
+
 
     for i in brain.everyAgent:
         view.debug_log += str(brain.everyAgent[i]) + "\n"

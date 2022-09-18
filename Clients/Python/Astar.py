@@ -89,8 +89,8 @@ def Connected_nodes2dictionary(self:GameState, coordinates:tuple,Collect_gold:in
     return dic[coordinates]
 
 
-def convert_strlist_to_int(str):  # '[3,4]'--->(3,4)
-    a = str.split(',')
+def convert_strlist_to_int(text:str) -> tuple:  # '[3,4]'--->(3,4)
+    a = text.split(',')
     b = a[0]
     c = b.split('[')
     d = a[1]
