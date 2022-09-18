@@ -465,6 +465,7 @@ def percent(All: float or int, Some: float or int) -> float:
 
 
 def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
+       
     if view.wallet == 0: return False
     closest_treasury = find_closest_type(view.location, MapType.TREASURY)
     if closest_treasury is None: return False
@@ -482,9 +483,12 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
         lost_coins = view.wallet * view.attack_ratio * (view.atklvl / (view.atklvl + view.deflvl) + 1)
         if lost_coins > view.map.gold_count:
             return closest_treasury
-
-   
-    pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),3)
+    
+     
+    pathList1 = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),1)
+    x=1
+    if len(pathList1)<4:x=-1
+    pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),2+x)
     max_path_size = (view.map.width + view.map.height) / 2
     path_percent = percent(max_path_size,len(pathList)-1)
     gold_percent = percent(view.map.gold_count  , view.wallet) * 1
@@ -493,15 +497,18 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
        return pathList[1]
 
 
+   
 
-    pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),6)
+
+    pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),5+x)
     max_path_size = (view.map.width + view.map.height) / 2
     path_percent = percent(max_path_size,len(pathList)-1)
-    gold_percent = percent(view.map.gold_count  , view.wallet) * 1.4
+    gold_percent = percent(view.map.gold_count  , view.wallet) * 1.5
 
     if len(pathList)!=0 and gold_percent > path_percent:
         return pathList[1]
 
+    
 
 
     # pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),7)
@@ -606,11 +613,10 @@ def shouldUpgrade(view: GameState, activationThreshold: float) -> Action or bool
 # 10 - add wallet watcher -> estimate of upgrades and safe wallet ****
 
 def getAction(view: GameState) -> Action:
-   
-   
+    
     Dispose(view)
     Update(view)
-
+   
     goal = Patrol(view)
 
     x = shouldUpgrade(view, 30)
@@ -623,7 +629,7 @@ def getAction(view: GameState) -> Action:
 
     go_t = retrieveGold(view)
     if go_t:
-        
+      
         if type(go_t)==str:
             goal=Astar.convert_strlist_to_int(go_t)
         else:
@@ -647,5 +653,5 @@ def getAction(view: GameState) -> Action:
     else:
         brain.last_tested_fog = None
     a=[i for i in brain.everyTile  if i.Type not in blockingTypes and i.tempType not in blockingTypes]
-    view.debug_log += f'map_gridemap_gridemap_gridemap_gride: {str(a)}\n'
+   
     return getStepTowards(view.location, goal)
