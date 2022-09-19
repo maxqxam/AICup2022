@@ -464,7 +464,7 @@ def percent(All: float or int, Some: float or int) -> float:
     return Some * (100 / All)
 
 
-def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
+def ز(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
        
     if view.wallet == 0: return False
     closest_treasury = find_closest_type(view.location, MapType.TREASURY)
@@ -487,8 +487,8 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
      
     pathList1 = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),1)
     x=1
-    if len(pathList1)<4:x=-1
-    pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),2+x)
+    if len(pathList1)<=3: x=-1
+    pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),3+x)
     max_path_size = (view.map.width + view.map.height) / 2
     path_percent = percent(max_path_size,len(pathList)-1)
     gold_percent = percent(view.map.gold_count  , view.wallet) * 1
@@ -497,13 +497,13 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
        return pathList[1]
 
 
-   
-
-
-    pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),5+x)
+    x=1
+    if len(pathList1)<=4 :x=-1
+ 
+    pathList = Astar.a_star_algorithm(view,str(list(view.location)),str(list(closest_treasury)),4+x)
     max_path_size = (view.map.width + view.map.height) / 2
     path_percent = percent(max_path_size,len(pathList)-1)
-    gold_percent = percent(view.map.gold_count  , view.wallet) * 1.5
+    gold_percent = percent(view.map.gold_count  , view.wallet) * 1.4
 
     if len(pathList)!=0 and gold_percent > path_percent:
         return pathList[1]
