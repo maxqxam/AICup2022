@@ -50,6 +50,8 @@ class Brain:
     max_defence_upgrade = 7
     max_attack_upgrade = 6
     max_path_size = 0
+    last_target = 0
+    avePoint_treasury = None
 
     def __init__(self):
         self.everyAgent = None
@@ -166,6 +168,7 @@ class Brain:
             if sum(dist) > maxDist:
                 maxDist= sum(dist)
 
+        Brain.avePoint_treasury = avePoint
         self.max_path_size = maxDist
         return
 
@@ -557,14 +560,16 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
 
 
 def shouldAttack(view: GameState, minimumAttackRatio: float = 0.8) -> False or Action:
-    target = find_fattest_enemy(view)
-    if target is not None:
 
+    target = find_fattest_enemy(view)
+    Brain.last_target = target
+    if target is not None:
         Brain.last_target_index = target.agentId
 
         if target.wallet < view.map.gold_count / 8 or view.attack_ratio <= minimumAttackRatio:
             # if view.attack_ratio <= minimumAttackRatio or target.wallet < 5:
             return False
+        if target.wallet < view.wallet: return False
 
         dist = abs(view.location[0] - target.pos[0]) + abs(view.location[1] - target.pos[1])
 
@@ -623,10 +628,51 @@ def shouldUpgrade(view: GameState, activationThreshold: float) -> Action or bool
 
     return False
 
+def retreat(view: GameState) -> tuple[int , int] or bool:
+    target = find_closest_enemy(view)
+    if target is None or Brain.avePoint_treasury is None: return False
+    if target.wallet > view.wallet : return False
+
+    options = get_connected_nodes_hard(brain.everyTile,view.location)
+
+    if len(options) == 0: return False
+    self_dist_to_enemy = [abs(target.pos[0] - view.location[0]),abs(target.pos[1] - view.location[1])]
+
+    if max(self_dist_to_enemy) > view.ranged_attack_radius and max(self_dist_to_enemy) > view.linear_attack_range:
+        return False
+
+    enemy_dist_to_treasury = getShortestPath(brain.everyTile,target.pos,Brain.avePoint_treasury)
+    self_dist_to_treasury = getShortestPath(brain.everyTile,view.location,Brain.avePoint_treasury)
+
+    if (len(enemy_dist_to_treasury) == 0 or len(self_dist_to_treasury) == 0) \
+            or (len(enemy_dist_to_treasury) < len(self_dist_to_treasury)): return False
+
+    # furthestOption = getFurthestOptionFromTail(options,[target.pos])
+    furthestOption = self_dist_to_treasury[len(self_dist_to_treasury)-2].cPos
+
+    view.debug_log += "\nfurthestOption : "+str(furthestOption) +"\t selfPos : "+str(view.location)+"\n"
+
+    return furthestOption
+
+    # return False
+
+    # target = find_fattest_enemy(view)
+    # Brain.last_target = target
+    #
+    # if Brain.avePoint_treasury is None or target is None:
+    #     return False
+    #
+    # enemy_dist = getShortestPath(brain.everyTile,Brain.last_target.pos,Brain.avePoint_treasury)
+    # self_dist = getShortestPath(brain.everyTile,view.location,Brain.avePoint_treasury)
+    #
+    # if len(enemy_dist) == 0 or len(self_dist) == 0: return False
+    #
+    # if len(enemy_dist) < len(self_dist):
+    #     return self_dist[len(self_dist)-2].cPos
+    #
+    # return False
 
 def walletWatcher(view: GameState):
-
-
 
     for c in brain.everyAgent:
         i = brain.everyAgent[c]
@@ -692,9 +738,13 @@ def getAction(view: GameState) -> Action:
     for i in brain.everyAgent:
         view.debug_log += str(brain.everyAgent[i]) + "\n"
 
-    attack = shouldAttack(view)
-    if attack and not go_t:
-        return attack
+    attack = False
+
+    if not go_t:
+        attack = shouldAttack(view)
+        if attack:
+            return attack
+
 
     for c in brain.everyAgent:
         i = brain.everyAgent[c]
