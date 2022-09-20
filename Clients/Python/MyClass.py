@@ -49,6 +49,7 @@ class Brain:
     last_target_index = 0
     max_defence_upgrade = 7
     max_attack_upgrade = 6
+    max_path_size = 0
 
     def __init__(self):
         self.everyAgent = None
@@ -57,6 +58,7 @@ class Brain:
         self.everyGold = None
         self.last_tested_fog = None
         self.everyTileAsPos = None
+        self.everyTreasury = None
 
 
 
@@ -75,6 +77,7 @@ class Brain:
         self.everyGold = []
         self.everyTile = []
         self.everyTileAsPos = []
+        self.everyTreasury = []
 
         for i in range(0, mapDimensions[0]):
             for c in range(0, mapDimensions[1]):
@@ -132,6 +135,40 @@ class Brain:
 
                     # if c.data!=-1:
                     #     self.everyTile[i].tempType = MapType.AGENT.value
+        for i in self.everyTile:
+            if i.Type == MapType.TREASURY.value and i.pos not in [c.pos for c in self.everyTreasury]:
+                self.everyTreasury.append(i)
+
+        self.get_furthest_treasury_dist(view)
+
+
+    def get_furthest_treasury_dist(self , view: GameState) -> None:
+        if len(self.everyTreasury) == 0 :
+            self.max_path_size = (view.map.width + view.map.height) / 2
+            return
+
+        aveTreasury = [0,0]
+        countTreasury = 0
+
+        for i in self.everyTreasury:
+            countTreasury+=1
+            aveTreasury[0] += i.pos[0]
+            aveTreasury[1] += i.pos[1]
+
+        avePoint = (aveTreasury[0]/countTreasury,aveTreasury[1]/countTreasury)
+
+        corners = [(0,0),(0,view.map.width-1),(view.map.height-1,0),(view.map.height-1,view.map.width-1)]
+
+        dist = 0
+        maxDist = 0
+        for i in corners:
+            dist = [abs(i[0]-avePoint[0]),abs(i[1]-avePoint[1])]
+            if sum(dist) > maxDist:
+                maxDist= sum(dist)
+
+        self.max_path_size = maxDist
+        return
+
 
     def flushTiles(self):
         if self.everyTile is None: return
@@ -501,8 +538,8 @@ def retrieveGold(view: GameState, triggerRange=5) -> bool or tuple[int, int]:
             return closest_treasury
 
     pathList = getShortestPath(brain.everyTile, view.location, closest_treasury)
-    max_path_size = (view.map.width + view.map.height) / 2
-    path_percent = percent(max_path_size,len(pathList)-1)
+    # max_path_size = (view.map.width + view.map.height) / 2
+    path_percent = percent(brain.max_path_size,len(pathList)-1)
     gold_percent = percent(view.map.gold_count  , view.wallet) * 1.5
 
     if len(pathList)!=0 and gold_percent > path_percent:
@@ -668,7 +705,8 @@ def getAction(view: GameState) -> Action:
 
 
     view.debug_log += "" + brain.getVisiblePlacesString() + "\n"
-
+    view.debug_log += "\n everyTreasury : "+str(brain.everyTreasury)+"\n"
+    view.debug_log += "\n maxPathSize : "+str(brain.max_path_size)+"\n"
     view.debug_log += "\n everyFog : " + str(brain.everyFog) + "\n"
     view.debug_log += "\n goal : " + str(goal) + "\n"
 
