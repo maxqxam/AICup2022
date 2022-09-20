@@ -137,7 +137,7 @@ class GameState:
 
     def get_action(self) -> Action:
         result = Action.STAY
-       
+
         try:
             result = MyClass.getAction(self)
         except Exception as e:
